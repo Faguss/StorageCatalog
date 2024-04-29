@@ -69,12 +69,12 @@
 	A36 - AA 91300 - AA 95999 
 	A37 - AA 96000 - AA 99998 
 
-	A40: AA 0002R - 3099R 
-	A29: AA 3100R - 6599R 
+	A40: AA 0002R - AA 3099R 
+	A29: AA 3100R - AA 6599R 
 	A22: AA 6600R - AA 9999R 
 	A43: AA 0003C - AA 4299C 
 	A44: AA 4300C - AA 9230C 
-	A9: AA 9213C - AA 3319U 
+	A9: AA 9213C - AA 9999C, AA 0001U - AA 3319U
 	A38: AA 3320U - AA 7169U 
 	A2: AA 7170U - AA 0497V 
 	A3: AA 0498V - AA 3785V 
@@ -88,7 +88,7 @@
 	A28: AA 3351X - AA 6600X 
 	A48: AA 6601X - AA 9961X 
 	A41: AA 9962X - AA 9999X, HF,HG,0-350HH 
-	A14: 351HH,HJ,500HK 
+	A14: 351HH,HJ,0-500HK 
 	A13: 501HK,HL,HM, 
 	A16: HN,HP,0-399HR, 
 	A31: 400HR, HS, 0-799HT
@@ -103,40 +103,41 @@
 	A6:CW,CX,CY, 
 
 	A18 - AA 001T, AA 001U,AA 001V-900V 
+	A42: A2 3301-A2 5728
 
-	B6: AA 0001E-AA4659E
-	B12: AA 4660E- AA9000E
+	B6: AA 0001E-AA 4659E
+	B12: AA 4660E- AA 9000E
 	B13: AA 9002E-AA 3339F
-	B14: AA 3340F - AA7610F
-	B15: AA 7611F - AA 9999F ,AA 0001G-AA1808G
-	B16: AA1809G - AA6265G
-	B21: AA6266G- AA 9999G ,AA 0001H-AA 0629H
-	B24: AA 0630H- AA4810H
+	B14: AA 3340F - AA 7610F
+	B15: AA 7611F - AA 9999F ,AA 0001G-AA 1808G
+	B16: AA 1809G - AA 6265G
+	B21: AA 6266G- AA 9999G ,AA 0001H-AA 0629H
+	B24: AA 0630H- AA 4810H
 	B25: AA 4811H- AA 8749H
-	B26: AA 8750H- AA 3129J
+	B26: AA 8750H-AA 9999H, AA 0001J-AA 3129J
 	B27: AA 3130J- AA 7110J
 	B28: AA 7111J- AA 1040K
 	B30: AA 1041H - AA 5030K
 	B32:AA 5031K- AA 9070K
 	B33: AA 9071K - AA 9999K,AA 0001L- AA 3120L
-	B41:-AA901V,001W,001HX,AM,AN
+	B41:AA 901V,001W,001HX,AE*,AJ*,AM*,AN*,A2 2552-A2 5434
 	B37: AA 3122L-AA 7220L
 	B39:AA 7221L-AA 9999L
 	B43: AA 0002N- AA 1810N
 	B35: AA 1811N- AA 5279N
 	B44: AA 5280N- AA 8679N
-	B46: AA 8680N- AA1915P
+	B46: AA 8680N- AA 9999N, AA 0001P-AA 1915P
 	B17: AA 1916P- AA 4969P
 	B48: AA 4970P- AA 8049P
-	B3: AA 8050P- AA 1192S
+	B3: AA 8050P- AA 9999P, AA 0001S- AA 1192S
 	B2: AA 1193S - AA 4319S
 	B20: AA 4320S- AA 7469S
-	B9: AA 7470S- AA 0576T
+	B9: AA 7470S- AA 9999S,AA 0000T- AA 0576T
 	B10: AA 0577T - AA 3820T
 
 	B11: AA 3821T - AA 68889T
 	B31: AA 6890T - AA 9999T
-	B18: AA0001Y - AA 2999Y
+	B18: AA 0001Y - AA 2999Y
 	B45: AA 6181Y - AA 9440Y
 	B36: AA 9441Y - AA,AC,0-760AE
 	B4: AA 761AE,AF,AG,AH,0-250AJ
@@ -144,8 +145,8 @@
 	B19: AA 421AM,AN,AP,0-600AR
 	B22: AA 601AR,AS,AT,0-615AU
 	B29: AA 617AU,AV,AW
-	B38: AX,AY
-	B8: AA 0001-AA 38888
+	B38: AX,AY,AA 3889-AA 4611
+	B8: AA 0001-AA 3888
 
 	B34: AA 001L- AA 999L
 	B47: EA,EC
@@ -163,32 +164,42 @@
 	C07 FL, FM, 0-499FN
 	C08 500FN, FP, FR
 	C09 FS, FT, 0-499FU
-	C10 AA 3000Y - AA6180Y
+	C10 AA 3000Y - AA 6180Y
 	C11 500FU, FV, FW
-	C12 FY, GA, 499GC
+	C12 FY, GA, 0-499GC
+	C13 AAA..,AAU..,AAA..
+	C24 AGR..,AKL..-PRZ..
+	C23 PS..-ZZZ..
 
-	C14 500GC, GE, 499GF
+	C14 500GC, GE, 0-499GF
 	C15 500GF, GG, GH
-	C16 GJ, GK,001-300GL
-	C17 331GL, GM,001-600GN
-	C18 601GN, GP,001-800GR
+	C16 GJ, GK,0-300GL
+	C17 331GL, GM,0-600GN
+	C18 601GN, GP,0-800GR
 	C19 801GR, GS,GT
 
-	C20 GU,GV,001-370GW
-	C21 371GW,GY,001-700HA
+	C20 GU,GV,0-370GW
+	C21 371GW,GY,0-700HA
 	C22 701HA,HC,HE
-	C26 AA001R-999R, AA 0-999S, AA 001-999GX
-	C27 AA 0001M - 3719M
-	C28 AA 3720M - 6839M
-	C29 AA 6840M - 9599M
-	C25 AA 9600M - 9999M, EX, FX
+	C26 AA 001R-999R, AA 0-999S, AA 001-999GX
+	C27 AA 0001M - AA 1330M
+	C28 AA 4331M - 8169M
+	C29 AA 8170M - 9999M, EX
+	C25 FX, GX, HX, JX
 
 	A42 length:4
 	`;
 
-	var test = `	C24 AGR..-PR..
-	C23 PS..-Z..`;
+	var test = `
+	C6 AGR..-PRZ..
+	C2 AA 0001U - AA 3319U
+	C1 AA 30915 - AA 38199 
+	C4 0-350HH
+	C3 HG
+	C5 AE*
+	C6 AGR..-PRZ..`;
 	var storage = raw_storage_key_to_array(raw_storage_key);
+
 	var original_color = document.getElementById("draganddrop_field").style.backgroundColor;
 	var column_names = {
 		"a": "Szafa #1",
@@ -198,53 +209,9 @@
 		"non_matching": "Nieprzypisane",
 	}
 	
-	function parse_registration_number(input_text) {
-		let output = {
-			prefix:'', 
-			prefix_range: '',
-			suffix:'', 
-			number:0, 
-			digits_count:0
-		};
-		let letters_before_number = "";
-		let letters_after_number = "";
-		let digits = "";
-
-		if (input_text.substr(-2) == '..') {
-			output.prefixrange = input_text.substr(0,-2);
-			return output;
-		}
-
-		input_text.toLowerCase().match(/[a-zA-Z]+|[0-9]+/g).forEach(item => {
-			if (/^\d+$/.test(item)) {
-				digits = item;
-			} else {
-				if (digits.length == 0) {
-					letters_before_number = item;
-				} else {
-					letters_after_number = item;
-				}
-			}
-		});
-
-		if (digits.length > 0) {
-			output.number = parseInt(digits);
-			output.digits_count = digits.length;
-		}
-
-		if (letters_before_number.length > 0 && digits.length > 0) {
-			output.prefix = letters_before_number;
-		}
-
-		if (digits.length==0 && letters_before_number.length > 0) {
-			output.suffix = letters_before_number;
-		}
-
-		if (letters_after_number.length > 0) {
-			output.suffix = letters_after_number;
-		}
-
-		return output;
+	function is_numeric(str) {
+		if (typeof str != "string") return false
+		return !isNaN(str) && !isNaN(parseFloat(str))
 	}
 
 	function raw_storage_key_to_array(input_text) {
@@ -269,99 +236,119 @@
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
 			line = line.trim();
-			if (line.length > 0) {
-				let identifier = "";
-				let i = 0;
+			if (line.length == 0)
+				return;
 
-				while(i<line.length && !is_separator(line[i])) {
-					identifier += line[i++];
+			let i = 0;
+			while(i<line.length && !is_separator(line[i])) i++;
+
+			let column = 0;
+			let shelf = 0;
+			let identifier_items = line.substr(0,i).match(/[a-zA-Z]+|[0-9]+/g);
+			if (identifier_items.length >= 2) {
+				column = identifier_items[0];
+				shelf = parseInt(identifier_items[1]);
+			}
+			
+			if (!output.columns.includes(column)) {
+				output.columns.push(column);
+			}
+
+			while(i<line.length && is_separator(line[i])) i++;
+			let tokens = line.substr(i).split(/,/);
+			
+			function parse_range(input) {
+				let output = {
+					prefix:'',
+					number:'',
+					suffix:'',
+					prefix_number: false,
+				};
+
+				if (input.substring(input.length-1) == '*') {
+					output.prefix = input.substring(0,input.length-1);
+					return output;
 				}
 
-				let column = 0;
-				let shelf = 0;
-				let identifier_items = identifier.match(/[a-zA-Z]+|[0-9]+/g);
-				if (identifier_items.length >= 2) {
-					column = identifier_items[0];
-					shelf = parseInt(identifier_items[1]);
+				if (input.substring(input.length-2) == '..') {
+					output.prefix_range = input.substring(0,input.length-2);
+					return output;
+				}
+
+				const length_keyword = 'length:';
+				if (input.substring(0,length_keyword.length) == length_keyword) {
+					output.length = parseInt(input.substring(length_keyword.length));
+					return output;
 				}
 				
-				if (!output.columns.includes(column)) {
-					output.columns.push(column);
-				}
+				let parts = input.trim().split(/\s/);
+				output.prefix = parts.length>1 ? parts[0] : '';
 
-				let tokens = line.substr(i+1).split(/,/);
-				
-				tokens.forEach(token => {
-					token = token.trim();
-					//console.log("token: "+token);
-					if (token.length > 0) {
-						const keyword_length = 'length:';
-						if (token.substr(0,keyword_length.length) == keyword_length) {
-							output.pattern.push({
-								column: column,
-								shelf: shelf,
-								prefix: '',
-								start: 0,
-								end: 0,
-								suffix: '',
-								digits_count: 0,
-								prefix_start: '',
-								prefix_end: '',
-								length: parseInt(token.substr(keyword_length.length)),
-							});
-						} else {
-							let range = [];
-							token.split(/-/).forEach((item) => {
-								item = item.trim().replaceAll(/\s/g, '');
-								if (item.length > 0) {
-									range.push(item);
-								}
-							});
-							
-							//console.log("range: "+range);
-							if (range.length >= 2) {
-								let range_start = parse_registration_number(range[0]);
-								let range_end = parse_registration_number(range[1]);
-								//console.log("range_start:");
-								//console.log(range_start);
-								//console.log("range_end:");
-								//console.log(range_end);
-	
-								output.pattern.push({
-									column: column,
-									shelf: shelf,
-									prefix: range_start.prefix.length > 0 ? range_start.prefix : default_prefix,
-									start: range_start.number,
-									end: range_end.number,
-									suffix: range_start.suffix.length > 0 ? range_start.suffix : range_end.suffix,
-									digits_count: range_end.digits_count,
-									prefix_start: range_start.prefix_range,
-									prefix_end: range_end.prefix_range,
-								});
-								//console.log("result:");
-								//console.log(output.pattern[output.pattern.length-1]);
-							} else if (range.length == 1) {
-								let range_start = parse_registration_number(range[0]);
-								//console.log("range_start:");
-								//console.log(range_start);
-	
-								output.pattern.push({
-									column: column,
-									shelf: shelf,
-									prefix: range_start.prefix.length > 0 ? range_start.prefix : default_prefix,
-									start: range_start.number,
-									end: pad_number(range_start.suffix),
-									suffix: range_start.suffix,
-									digits_count: pad_number(range_start.suffix).toString().length,
-								});
-								//console.log("result:");
-								//console.log(output.pattern[output.pattern.length-1]);
-							}
-
-						}
+				output.prefix.split('').forEach((char)=>{
+					if (is_numeric(char)) {
+						output.prefix_number = true;
 					}
 				});
+
+				let right = parts.length>1 ? parts[1] : parts[0];
+
+				parts = right.match(/[a-zA-Z]+|[0-9]+/g).forEach(item => {
+					if (is_numeric(item) && output.number.length==0)
+						output.number = item;
+					else 
+						if (!is_numeric(item) && output.suffix.length==0)
+							output.suffix = item;
+				});
+				
+				return output;
 			}
+
+			tokens.forEach(token => {
+				token = token.trim();
+				if (token.length == 0)
+					return;
+
+				let range = token.split(/-/).map((x) => parse_range(x));
+
+				let pattern = {
+					column: column,
+					shelf: shelf,
+					prefix: range.length>1 ? range[1].prefix : range[0].prefix,
+					suffix: range.length>1 ? range[1].suffix : range[0].suffix,
+					prefix_number: range[0].prefix_number,
+				};
+				
+				if (range.length > 1 && range[1].number!='' && range[0].number!='') {
+					pattern.start = parseInt(range[0].number);
+					pattern.end = parseInt(range[1].number);
+					pattern.digits = range[1].number.length;
+				} else
+					if (range.length > 0 && range[0].number!='') {
+						pattern.start = parseInt(range[0].number);
+						pattern.end = pad_number(range[0].number);
+						pattern.digits = range[0].number.length;
+					} else
+						if (pattern.suffix != '') {
+							pattern.start = 0;
+							pattern.end = pad_number(pattern.suffix);
+							pattern.digits = pattern.end.toString().length;
+						}
+
+				if (range.length > 0 && range[0].hasOwnProperty("prefix_range")) {
+					pattern.prefix_start = range[0].prefix_range;
+					pattern.prefix_end = range[0].prefix_range;
+
+					if (range.length > 1 && range[1].hasOwnProperty("prefix_range")) {
+						pattern.prefix_end = range[1].prefix_range;
+					}
+				}
+
+				if (range[0].hasOwnProperty("length")) {
+					pattern.length = range[0].length;
+				}				
+
+				output.pattern.push(pattern);
+			});
 		});
 
 		return output;
@@ -371,42 +358,81 @@
 		let output = {"non_matching":[], total_count:0, count:{}};
 		storage.columns.forEach(name => {output[name]=[]; output.count[name]=0});
 		output.count.non_matching = 0;
-		
-		function is_numeric(str) {
-			if (typeof str != "string") return false
-			return !isNaN(str) && !isNaN(parseFloat(str))
-		}
-		
-		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
-			line = line.replace(/\s/g, '');
-			if (line.length > 0) {
-				let current = parse_registration_number(line);
-				let matched = false;
 
-				for(let i=0; i<storage.pattern.length && !matched; i++) {
-					if (
-						(storage.pattern[i].hasOwnProperty('length') &&
-						line.length == storage.pattern[i].length)
-						||
-						(current.prefix == storage.pattern[i].prefix && 
-						current.suffix == storage.pattern[i].suffix && 
-						current.number >= storage.pattern[i].start && 
-						current.number <= storage.pattern[i].end && 
-						current.digits_count == storage.pattern[i].digits_count)
-						 
-					) {
-						output[storage.pattern[i].column].push(storage.pattern[i].shelf + ": " + line);
-						output.count[storage.pattern[i].column]++;
-						output.total_count++;
-						matched = true;
+		function compare_letters(start, target, end) {
+			if (target == start || target == end)
+				return true;
+
+			let array = [start,target,end];
+			array.sort();
+			return target==array[1];
+		}
+
+		function get_number(line,prefix) {
+			if (prefix.length > 0 && line.substring(0,prefix.length)==prefix)
+				line = line.substring(prefix.length);
+
+			if (line.length > 0) {
+				let parts = line.match(/[a-zA-Z]+|[0-9]+/g);
+			
+				if (parts) {
+					for(let i=0; i<parts.length; i++) {
+						if (is_numeric(parts[i]))
+							return parts[i];
 					}
 				}
-				
-				if (!matched) {
-					output.non_matching.push(line);
-					output.count["non_matching"]++;
-					output.total_count++;
+			}
+
+			return '-1';
+		}
+		
+		input_text.split(/\r?\n/).forEach(line => {
+			let current = line.toLowerCase().replace(/\s/g, '');
+			if (current.length == 0) 
+				return;
+
+			let parts = current.match(/[a-zA-Z]+|[0-9]+/g);
+			let current_prefix = parts.length > 0 ? parts[0] : '';
+			let current_number = parts.length > 1 ? parts[1] : '-1';
+			let suffix = parts.length > 0 ? parts[parts.length-1] : '';
+			let matched = false;
+
+			for(let i=0; i<storage.pattern.length && !matched; i++) {
+				let prefix = current_prefix;
+				let number = current_number;
+
+				if (storage.pattern[i].prefix_number) {
+					prefix = current.substring(0,storage.pattern[i].prefix.length);
+					number = get_number(current,storage.pattern[i].prefix);
 				}
+				
+				if (
+					(!storage.pattern[i].hasOwnProperty('length') ||
+					current.length == storage.pattern[i].length)
+					&&
+					(storage.pattern[i].prefix.length==0 ||
+					prefix == storage.pattern[i].prefix)
+					&&
+					(storage.pattern[i].suffix.length==0 ||
+					suffix == storage.pattern[i].suffix)
+					&&
+					((!storage.pattern[i].hasOwnProperty('start') || !storage.pattern[i].hasOwnProperty('end') || !storage.pattern[i].hasOwnProperty('digits')) ||
+					parseInt(number) >= storage.pattern[i].start && parseInt(number)<=storage.pattern[i].end && number.length==storage.pattern[i].digits)
+					&&
+					((!storage.pattern[i].hasOwnProperty('prefix_start') || !storage.pattern[i].hasOwnProperty('prefix_end')) ||
+					compare_letters(storage.pattern[i].prefix_start,parts[0],storage.pattern[i].prefix_end))
+				) {
+					output[storage.pattern[i].column].push(storage.pattern[i].shelf + ": " + line);
+					output.count[storage.pattern[i].column]++;
+					output.total_count++;
+					matched = true;
+				}
+			}
+			
+			if (!matched) {
+				output.non_matching.push(line);
+				output.count["non_matching"]++;
+				output.total_count++;
 			}
 		});
 		
