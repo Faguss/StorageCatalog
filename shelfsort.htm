@@ -8,24 +8,26 @@
 	<script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
 	<script src="https://unpkg.com/write-excel-file@1.x/bundle/write-excel-file.min.js"></script>
 	<style>
-	/*table, th, td {border: 1px solid;}
-	td {min-width:4em;}*/
 	table {
   		border-collapse: collapse;
 	}
-	td, th {
+	th {
+		text-align: center;
+		background-color: #afb3b1;
 		border: 1px solid #ddd;
 		padding: 8px;
+	}
+	td {
+		border: 1px solid #ddd;
+		padding-left: 8px;
+		padding-right: 8px;
+		font-size: small;
 	}
 	tr:nth-child(even){
 		background-color: #e4e4e4;
 	}
 	tr:hover {
 		background-color: #acacac;
-	}
-	th {
-		text-align: center;
-		background-color: #afb3b1;
 	}
 	#draganddrop_field {
 		background-color: rgb(236, 228, 228); 
@@ -54,6 +56,8 @@
 	<div id="output"></div>
 
 	<script>
+	const DEFAULT_PREFIX = 'aa';
+	const MAX_DIGITS = 5;
 	var raw_storage_key = `
 	A17 - AA 30915 - AA 38199 
 	A19 - AA 38200 - AA 43899 
@@ -76,10 +80,10 @@
 	A44: AA 4300C - AA 9230C 
 	A9: AA 9213C - AA 9999C, AA 0001U - AA 3319U
 	A38: AA 3320U - AA 7169U 
-	A2: AA 7170U - AA 0497V 
+	A2: AA 7170U - AA 9999U, AA 0001V - AA 0497V 
 	A3: AA 0498V - AA 3785V 
 	A4: AA 3786V - AA 7041V 
-	A7: AA 7042V - AA 0237W 
+	A7: AA 7042V - AA 9999V, AA 0001W - AA 0237W
 	A8: AA 0238W - AA 3517W 
 	A5: AA 3518W - AA 6725W 
 	A46: AA 6726W - AA 9999W 
@@ -92,8 +96,8 @@
 	A13: 501HK,HL,HM, 
 	A16: HN,HP,0-399HR, 
 	A31: 400HR, HS, 0-799HT
-	A1: HU,HV, 0-500HW,800HT 
-	A15: HV,501HW,HY,JA 
+	A1: 800HT,HU,HV,0-500HW
+	A15: 501HW,HY,JA,JC
 	A33: CA,CC,0-890CE 
 	A34: 891CE,CF,CG,0-645CH 
 	A10:646CH,CJ,CK,0-370CL 
@@ -107,7 +111,7 @@
 
 	B6: AA 0001E-AA 4659E
 	B12: AA 4660E- AA 9000E
-	B13: AA 9002E-AA 3339F
+	B13: AA 9002E,AA 0-3339F
 	B14: AA 3340F - AA 7610F
 	B15: AA 7611F - AA 9999F ,AA 0001G-AA 1808G
 	B16: AA 1809G - AA 6265G
@@ -116,8 +120,8 @@
 	B25: AA 4811H- AA 8749H
 	B26: AA 8750H-AA 9999H, AA 0001J-AA 3129J
 	B27: AA 3130J- AA 7110J
-	B28: AA 7111J- AA 1040K
-	B30: AA 1041H - AA 5030K
+	B28: AA 7111J, AA 0-AA 1040K
+	B30: AA 1041K - AA 5030K
 	B32:AA 5031K- AA 9070K
 	B33: AA 9071K - AA 9999K,AA 0001L- AA 3120L
 	B41:AA 901V,001W,001HX,AE*,AJ*,AM*,AN*,A2 2552-A2 5434
@@ -135,11 +139,11 @@
 	B9: AA 7470S- AA 9999S,AA 0000T- AA 0576T
 	B10: AA 0577T - AA 3820T
 
-	B11: AA 3821T - AA 68889T
+	B11: AA 3821T - AA 6889T
 	B31: AA 6890T - AA 9999T
 	B18: AA 0001Y - AA 2999Y
 	B45: AA 6181Y - AA 9440Y
-	B36: AA 9441Y - AA,AC,0-760AE
+	B36: AA 9441Y , AA,AC,0-760AE
 	B4: AA 761AE,AF,AG,AH,0-250AJ
 	B5: AA 251AJ,AK,AL,0-420AM
 	B19: AA 421AM,AN,AP,0-600AR
@@ -181,16 +185,19 @@
 	C20 GU,GV,0-370GW
 	C21 371GW,GY,0-700HA
 	C22 701HA,HC,HE
-	C26 AA 001R-999R, AA 0-999S, AA 001-999GX
 	C27 AA 0001M - AA 1330M
 	C28 AA 4331M - 8169M
 	C29 AA 8170M - 9999M, EX
-	C25 FX, GX, HX, JX
+	C25 FX, GX, 0-600HX
+	C26 AA 001R-999R, AA 0-999S, AA 001L, 601HX
 
 	A42 length:4
 	`;
 
 	var test = `
+	B13: AA 9002E,AA 0-3339F
+	B28: AA 7111J, AA 0-AA 1040K
+	`;`
 	C6 AGR..-PRZ..
 	C2 AA 0001U - AA 3319U
 	C1 AA 30915 - AA 38199 
@@ -224,15 +231,13 @@
 		}
 
 		function pad_number(input) {
-			const max_digits = 5;		
-			return parseInt('9'.repeat(max_digits - input.length));
+			return parseInt('9'.repeat(MAX_DIGITS - input.length));
 		}
 
 		let output = {
 			pattern: [],
 			columns: [],
 		};
-		const default_prefix = "aa";
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
 			line = line.trim();
@@ -259,10 +264,9 @@
 			
 			function parse_range(input) {
 				let output = {
-					prefix:'',
+					prefix:DEFAULT_PREFIX,
 					number:'',
 					suffix:'',
-					prefix_number: false,
 				};
 
 				if (input.substring(input.length-1) == '*') {
@@ -282,13 +286,7 @@
 				}
 				
 				let parts = input.trim().split(/\s/);
-				output.prefix = parts.length>1 ? parts[0] : '';
-
-				output.prefix.split('').forEach((char)=>{
-					if (is_numeric(char)) {
-						output.prefix_number = true;
-					}
-				});
+				output.prefix = parts.length>1 ? parts[0] : DEFAULT_PREFIX;
 
 				let right = parts.length>1 ? parts[1] : parts[0];
 
@@ -313,21 +311,27 @@
 				let pattern = {
 					column: column,
 					shelf: shelf,
-					prefix: range.length>1 ? range[1].prefix : range[0].prefix,
-					suffix: range.length>1 ? range[1].suffix : range[0].suffix,
-					prefix_number: range[0].prefix_number,
+					suffix: range.length>1 ? range[1].suffix : range[0].suffix
 				};
+
+				let last = range.length>1 ? 1 : 0;
+				if (range[last].prefix != DEFAULT_PREFIX) {
+					pattern.prefix = range[last].prefix;
+				}
 				
+				// input is two numbers (e.g 0-100)
 				if (range.length > 1 && range[1].number!='' && range[0].number!='') {
 					pattern.start = parseInt(range[0].number);
 					pattern.end = parseInt(range[1].number);
 					pattern.digits = range[1].number.length;
 				} else
+					// input is one number (e.g 100)
 					if (range.length > 0 && range[0].number!='') {
 						pattern.start = parseInt(range[0].number);
-						pattern.end = pad_number(range[0].number);
+						pattern.end = pad_number(pattern.suffix);
 						pattern.digits = range[0].number.length;
 					} else
+						// input is letters (e.g AA)
 						if (pattern.suffix != '') {
 							pattern.start = 0;
 							pattern.end = pad_number(pattern.suffix);
@@ -355,20 +359,27 @@
 	}
 
 	function sort_numbers_to_shelves(input_text, storage) {
-		let output = {"non_matching":[], total_count:0, count:{}};
-		storage.columns.forEach(name => {output[name]=[]; output.count[name]=0});
+		let output = {
+			non_matching: [], 
+			total_count: 0, 
+			count: {}
+		};
+		storage.columns.forEach(name => {
+			output[name] = []; 
+			output.count[name] = 0
+		});
 		output.count.non_matching = 0;
 
 		function compare_letters(start, target, end) {
 			if (target == start || target == end)
 				return true;
 
-			let array = [start,target,end];
+			let array = [start, target, end];
 			array.sort();
-			return target==array[1];
+			return target == array[1];
 		}
 
-		function get_number(line,prefix) {
+		function get_number(line, prefix) {
 			if (prefix.length > 0 && line.substring(0,prefix.length)==prefix)
 				line = line.substring(prefix.length);
 
@@ -394,14 +405,15 @@
 			let parts = current.match(/[a-zA-Z]+|[0-9]+/g);
 			let current_prefix = parts.length > 0 ? parts[0] : '';
 			let current_number = parts.length > 1 ? parts[1] : '-1';
-			let suffix = parts.length > 0 ? parts[parts.length-1] : '';
+			let suffix = parts.length>0 && parts[parts.length-1]!=current_number ? parts[parts.length-1] : '';
 			let matched = false;
 
 			for(let i=0; i<storage.pattern.length && !matched; i++) {
 				let prefix = current_prefix;
 				let number = current_number;
 
-				if (storage.pattern[i].prefix_number) {
+				// todo: handle this with a function
+				if (storage.pattern[i].hasOwnProperty('prefix') && /[0-9]/.test(storage.pattern[i].prefix)) {
 					prefix = current.substring(0,storage.pattern[i].prefix.length);
 					number = get_number(current,storage.pattern[i].prefix);
 				}
@@ -410,19 +422,31 @@
 					(!storage.pattern[i].hasOwnProperty('length') ||
 					current.length == storage.pattern[i].length)
 					&&
-					(storage.pattern[i].prefix.length==0 ||
-					prefix == storage.pattern[i].prefix)
-					&&
-					(storage.pattern[i].suffix.length==0 ||
-					suffix == storage.pattern[i].suffix)
+					(
+						(
+							storage.pattern[i].hasOwnProperty('prefix_start') && 
+							storage.pattern[i].hasOwnProperty('prefix_end') && 
+							compare_letters(storage.pattern[i].prefix_start,parts[0],storage.pattern[i].prefix_end)
+						)
+						||
+						(
+							(
+								(!storage.pattern[i].hasOwnProperty('prefix') && prefix==DEFAULT_PREFIX) || 
+								prefix == storage.pattern[i].prefix
+							)
+							&&
+							suffix == storage.pattern[i].suffix
+						)
+					)
 					&&
 					((!storage.pattern[i].hasOwnProperty('start') || !storage.pattern[i].hasOwnProperty('end') || !storage.pattern[i].hasOwnProperty('digits')) ||
 					parseInt(number) >= storage.pattern[i].start && parseInt(number)<=storage.pattern[i].end && number.length==storage.pattern[i].digits)
-					&&
-					((!storage.pattern[i].hasOwnProperty('prefix_start') || !storage.pattern[i].hasOwnProperty('prefix_end')) ||
-					compare_letters(storage.pattern[i].prefix_start,parts[0],storage.pattern[i].prefix_end))
 				) {
-					output[storage.pattern[i].column].push(storage.pattern[i].shelf + ": " + line);
+					if (!output[storage.pattern[i].column].hasOwnProperty(storage.pattern[i].shelf)) {
+						output[storage.pattern[i].column][storage.pattern[i].shelf] = [];
+					}
+
+					output[storage.pattern[i].column][storage.pattern[i].shelf].push(line);
 					output.count[storage.pattern[i].column]++;
 					output.total_count++;
 					matched = true;
@@ -434,6 +458,12 @@
 				output.count["non_matching"]++;
 				output.total_count++;
 			}
+		});
+
+		storage.columns.forEach(name => {
+			Object.keys(output[name]).forEach(subarray_key => {
+				output[name][subarray_key].sort();
+			});
 		});
 		
 		return output;
@@ -490,11 +520,24 @@
 
 		let thead = '';
 		let highest_count = 0;
+		let contiguous_arrays = {};
+
 		key.forEach(name => {
 			thead += '<th>' + column_names[name] + '</th>';
-
+			
 			if (sorted_numbers.count[name] > highest_count) {
 				highest_count = sorted_numbers.count[name];
+			}
+
+			contiguous_arrays[name] = [];
+			if (name != "non_matching") {
+				Object.keys(sorted_numbers[name]).forEach(subarray_key => {	
+					sorted_numbers[name][subarray_key].forEach(item => {
+						contiguous_arrays[name].push(subarray_key + ': ' + item);
+					});
+				});
+			} else {
+				contiguous_arrays[name].push(...sorted_numbers.non_matching);
 			}
 		});
 
@@ -505,7 +548,7 @@
 			let row = '';
 			
 			for(let i=0; i<key.length; i++) {				
-				row += '<td>' + (sorted_numbers[key[i]] && sorted_numbers[key[i]][j] ? sorted_numbers[key[i]][j] : '') + '</td>';
+				row += '<td>' + (contiguous_arrays[key[i]] && contiguous_arrays[key[i]][j] ? contiguous_arrays[key[i]][j] : '') + '</td>';
 			}
 			
 			rows += '<tr>' + row + '</tr>';
@@ -530,6 +573,7 @@
 		let excel_rows = [[]];
 		let columns = [];
 		let highest_count = 0;
+		let contiguous_arrays = {};
 		const min_width = 7;
 
 		key.forEach(name => {
@@ -546,13 +590,24 @@
 			if (sorted_numbers.count[name] > highest_count) {
 				highest_count = sorted_numbers.count[name];
 			}
+
+			contiguous_arrays[name] = [];
+			if (name != "non_matching") {
+				Object.keys(sorted_numbers[name]).forEach(subarray_key => {	
+					sorted_numbers[name][subarray_key].forEach(item => {
+						contiguous_arrays[name].push(subarray_key + ': ' + item);
+					});
+				});
+			} else {
+				contiguous_arrays[name].push(...sorted_numbers.non_matching);
+			}
 		});
 		
 		for(let j=0; j<highest_count; j++) {
 			let excel_row = [];
 			
 			for(let i=0; i<key.length; i++) {
-				let current_value = sorted_numbers[key[i]] && sorted_numbers[key[i]][j] ? sorted_numbers[key[i]][j] : '';
+				let current_value = contiguous_arrays[key[i]] && contiguous_arrays[key[i]][j] ? contiguous_arrays[key[i]][j] : '';
 				
 				excel_row.push({
 					type: String, 
