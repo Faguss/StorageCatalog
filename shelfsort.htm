@@ -24,6 +24,67 @@
 	<h2>non_matching</h2><div id="non_matching"></div>
 	
 	<script>
+	var input = " \
+	A17 - AA 30915 - AA 38199 \
+	A19 - AA 38200 - AA 43899 \
+	A20 - AA 43900 - AA 49799 \
+	A21 - AA 49800 - AA 55399 \
+	A23 - AA 55400 - AA 60899 \
+	A24 - AA 60900 - AA 66099 \
+	A25 - AA 66100 - AA 71099 \
+	A26 - AA 71100 - AA 75799 \
+	A30 - AA 75800 - AA 81299 \
+	A32 - AA 81300 - AA 86399 \
+	A35 - AA 86400 - AA 91299 \
+	A36 - AA 91300 - AA 95999 \
+	A37 - AA 96000 - AA 99998 \
+	A39 - tr złom`; \
+	A40: AA 0002R - 3099R \
+	A29: AA 3100R - 6599R \
+	A22: AA 6600R - AA 9999R \
+	A43: AA 0003C - AA 4299C \
+	A44: AA 4300C - AA 9230C \
+	A9: AA 9213C - AA 3319U \
+	A38: AA 3320U - AA 7169U \
+	A2: AA 7170U - AA 0497V \
+	A3: AA 0498V - AA 3785V \
+	A4: AA 3786V - AA 7041V \
+	A7: AA 7042V - AA 0237W \
+	A8: AA 0238W - AA 3517W \
+	A5: AA 3518W - AA 6725W \
+	A46: AA 6726W - AA 9999W \
+	A47: AA 0001X - AA 3350X \
+	A28: AA 3351X - AA 6600X \
+	A48: AA 6601X - AA 9961X \
+	A41: (AA 9962X - AA 9999X) HF,HG,350HH \
+	A14: 351HH,HJ,500HK \
+	A13: 501HK,HL,HM, \
+	A16: HN,HP,399HR, \
+	A31: 400HR, HS, HT799 \
+	A1: HU,HV, HW,HT800 \
+	15: HV,501HW,HY,JA \
+	A33: CA,CC,890CE \
+	A34: 891CE,CF,CG,645CH \
+	A10:646CH,CJ,CK,370CL \
+	A11:371CL,CM,CN \
+	A12:CP,CR,CS \
+	A27:CT,CU,CV \
+	A6:CW,CX,CY, \
+	A18 - AA 001T, AA 001U,AA 001V-900V \
+	A39 - TRANSPORTOWA \
+	A42 - ZMNIEJSZONE,INDYWIDUALNE,A2(2022) \
+	";
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	var global_buffer = [];
 	
 	let input = document.getElementById("input");
@@ -38,6 +99,42 @@
 	function sortNumbersToColumns(input_string) {
 		let storage_pattern = [
 			//prefix, suffix, start, end, column, shelf
+			{prefix:"aa", start:30915 end:38199 column:1 shelf:17},
+			{prefix:"aa", start:38200 end:43899 column:1 shelf:19},
+			{prefix:"aa", start:43900 end:49799 column:1 shelf:20},
+			{prefix:"aa", start:49800 end:55399 column:1 shelf:21},
+			{prefix:"aa", start:55400 end:60899 column:1 shelf:23},
+			{prefix:"aa", start:60900 end:66099 column:1 shelf:24},
+			{prefix:"aa", start:66100 end:71099 column:1 shelf:25},
+			{prefix:"aa", start:71100 end:75799 column:1 shelf:26},
+			{prefix:"aa", start:75800 end:81299 column:1 shelf:30},
+			{prefix:"aa", start:81300 end:86399 column:1 shelf:32},
+			{prefix:"aa", start:86400 end:91299 column:1 shelf:35},
+			{prefix:"aa", start:91300 end:95999 column:1 shelf:36},
+			{prefix:"aa", start:96000 end:99998 column:1 shelf:37},
+			//{prefix:"tr", column:1 shelf:39},
+			{prefix:"aa", suffix:"r", start:2 end:3099 column:1 shelf:40},
+			{prefix:"aa", suffix:"r", start:3100 end:6599 column:1 shelf:29},
+			{prefix:"aa", suffix:"r", start:6600 end:9999 column:1 shelf:22},
+			{prefix:"aa", suffix:"c", start:3 end:4299 column:1 shelf:43},
+			{prefix:"aa", suffix:"c", start:4300 end:9230 column:1 shelf:44},
+			{prefix:"aa", suffix:"c", start:9231 end:9999 column:1 shelf:9},//do sprawdzenia
+			{prefix:"aa", suffix:"u", start:0 end:3319 column:1 shelf:9},
+			{prefix:"aa", suffix:"u", start:3320 end:7169 column:1 shelf:38},
+			{prefix:"aa", suffix:"u", start:7170 end:9999 column:1 shelf:2},
+			{prefix:"aa", suffix:"v", start:0 end:497 column:1 shelf:2},
+			{prefix:"aa", suffix:"v", start:498 end:3785 column:1 shelf:3},
+			{prefix:"aa", suffix:"v", start:3786 end:7041 column:1 shelf:4},
+			{prefix:"aa", suffix:"v", start:7042 end:9999 column:1 shelf:7},
+			{prefix:"aa", suffix:"w", start:0 end:237 column:1 shelf:7},
+			{prefix:"aa", suffix:"w", start:238 end:3517 column:1 shelf:8},
+			{prefix:"aa", suffix:"w", start:3518 end:6725 column:1 shelf:5},
+			{prefix:"aa", suffix:"w", start:6726 end:9999 column:1 shelf:46},
+			{prefix:"aa", suffix:"x", start:1 end:3350 column:1 shelf:47},
+			{prefix:"aa", suffix:"x", start:3351 end:3350 column:1 shelf:47},
+			
+			
+			
 			{suffix:"ja", column:1, shelf:15},
 			{suffix:"hx", column:1, shelf:45},
 			{prefix:"aia", column:3, shelf:24},
