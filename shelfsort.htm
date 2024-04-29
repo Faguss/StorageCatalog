@@ -7,240 +7,433 @@
 	<title>Storage sorting</title>
 	<script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
 	<script src="https://unpkg.com/write-excel-file@1.x/bundle/write-excel-file.min.js"></script>
+	<style>
+	/*table, th, td {border: 1px solid;}
+	td {min-width:4em;}*/
+	table {
+  		border-collapse: collapse;
+	}
+	td, th {
+		border: 1px solid #ddd;
+		padding: 8px;
+	}
+	tr:nth-child(even){
+		background-color: #e4e4e4;
+	}
+	tr:hover {
+		background-color: #acacac;
+	}
+	th {
+		text-align: center;
+		background-color: #afb3b1;
+	}
+	#draganddrop_field {
+		background-color: rgb(236, 228, 228); 
+		border:1px solid brown; 
+		max-width:300px; 
+		height:150px; 
+		margin-bottom:2em; 
+		text-align:center; 
+		padding-top:1em;
+	}
+	</style>
 </head>
 
 <body>
-	<div style="border:1px solid brown; max-width:300px; height:150px; margin-bottom:2em; text-align:center; padding-top:1em;" ondrop="DropHandler(event, this);" ondragover="DragOverHandler(event, this, 1);" ondragleave="DragOverHandler(event, this, 0);">
-		Drag & drop xslx file<br><br>
-		<input type="file" multiple="multiple" onchange="ParseDroppedFile(this)">
-	</div>
+	<span id="controls">
+		<div id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="drag_over_handler(event, this, 1);" ondragleave="drag_over_handler(event, this, 0);">
+			Przeciągnij i upuść tutaj plik excel<br><br>
+			<input type="file" multiple="multiple" onchange="parse_dropped_file(this)">
+		</div>
 
-	<button type="button" onclick="GenerateSpreadsheet()" style="margin-bottom:25px">Export</button><br>
-	
-	<textarea id="input"></textarea>
-	<h2>1</h2><div id="1"></div>
-	<h2>2</h2><div id="2"></div>
-	<h2>3</h2><div id="3"></div>
-	<h2>non_matching</h2><div id="non_matching"></div>
-	
+		<textarea id="input"></textarea>
+		<br>
+		<button type="button" onclick="generate_spreadsheet(sort_numbers_to_shelves(document.getElementById('input').value, storage))" style="margin-bottom:25px">Utwórz plik excel</button>
+		<button type="button" onclick="print_html_table()">Wydrukuj</button>
+	</span>
+	<div id="output"></div>
+
 	<script>
-	var input = " \
-	A17 - AA 30915 - AA 38199 \
-	A19 - AA 38200 - AA 43899 \
-	A20 - AA 43900 - AA 49799 \
-	A21 - AA 49800 - AA 55399 \
-	A23 - AA 55400 - AA 60899 \
-	A24 - AA 60900 - AA 66099 \
-	A25 - AA 66100 - AA 71099 \
-	A26 - AA 71100 - AA 75799 \
-	A30 - AA 75800 - AA 81299 \
-	A32 - AA 81300 - AA 86399 \
-	A35 - AA 86400 - AA 91299 \
-	A36 - AA 91300 - AA 95999 \
-	A37 - AA 96000 - AA 99998 \
-	A39 - tr złom`; \
-	A40: AA 0002R - 3099R \
-	A29: AA 3100R - 6599R \
-	A22: AA 6600R - AA 9999R \
-	A43: AA 0003C - AA 4299C \
-	A44: AA 4300C - AA 9230C \
-	A9: AA 9213C - AA 3319U \
-	A38: AA 3320U - AA 7169U \
-	A2: AA 7170U - AA 0497V \
-	A3: AA 0498V - AA 3785V \
-	A4: AA 3786V - AA 7041V \
-	A7: AA 7042V - AA 0237W \
-	A8: AA 0238W - AA 3517W \
-	A5: AA 3518W - AA 6725W \
-	A46: AA 6726W - AA 9999W \
-	A47: AA 0001X - AA 3350X \
-	A28: AA 3351X - AA 6600X \
-	A48: AA 6601X - AA 9961X \
-	A41: (AA 9962X - AA 9999X) HF,HG,350HH \
-	A14: 351HH,HJ,500HK \
-	A13: 501HK,HL,HM, \
-	A16: HN,HP,399HR, \
-	A31: 400HR, HS, HT799 \
-	A1: HU,HV, HW,HT800 \
-	15: HV,501HW,HY,JA \
-	A33: CA,CC,890CE \
-	A34: 891CE,CF,CG,645CH \
-	A10:646CH,CJ,CK,370CL \
-	A11:371CL,CM,CN \
-	A12:CP,CR,CS \
-	A27:CT,CU,CV \
-	A6:CW,CX,CY, \
-	A18 - AA 001T, AA 001U,AA 001V-900V \
-	A39 - TRANSPORTOWA \
-	A42 - ZMNIEJSZONE,INDYWIDUALNE,A2(2022) \
-	";
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	var global_buffer = [];
-	
-	let input = document.getElementById("input");
-	input.addEventListener("input", function(e){
-		sortNumbersToColumns(e.target.value);
-	});
-	
-	document.addEventListener("DOMContentLoaded", function(event) {
-		sortNumbersToColumns(input.value);
-	});
+	var raw_storage_key = `
+	A17 - AA 30915 - AA 38199 
+	A19 - AA 38200 - AA 43899 
+	A20 - AA 43900 - AA 49799 
+	A21 - AA 49800 - AA 55399 
+	A23 - AA 55400 - AA 60899 
+	A24 - AA 60900 - AA 66099 
+	A25 - AA 66100 - AA 71099 
+	A26 - AA 71100 - AA 75799 
+	A30 - AA 75800 - AA 81299 
+	A32 - AA 81300 - AA 86399 
+	A35 - AA 86400 - AA 91299 
+	A36 - AA 91300 - AA 95999 
+	A37 - AA 96000 - AA 99998 
 
-	function sortNumbersToColumns(input_string) {
-		let storage_pattern = [
-			//prefix, suffix, start, end, column, shelf
-			{prefix:"aa", start:30915 end:38199 column:1 shelf:17},
-			{prefix:"aa", start:38200 end:43899 column:1 shelf:19},
-			{prefix:"aa", start:43900 end:49799 column:1 shelf:20},
-			{prefix:"aa", start:49800 end:55399 column:1 shelf:21},
-			{prefix:"aa", start:55400 end:60899 column:1 shelf:23},
-			{prefix:"aa", start:60900 end:66099 column:1 shelf:24},
-			{prefix:"aa", start:66100 end:71099 column:1 shelf:25},
-			{prefix:"aa", start:71100 end:75799 column:1 shelf:26},
-			{prefix:"aa", start:75800 end:81299 column:1 shelf:30},
-			{prefix:"aa", start:81300 end:86399 column:1 shelf:32},
-			{prefix:"aa", start:86400 end:91299 column:1 shelf:35},
-			{prefix:"aa", start:91300 end:95999 column:1 shelf:36},
-			{prefix:"aa", start:96000 end:99998 column:1 shelf:37},
-			//{prefix:"tr", column:1 shelf:39},
-			{prefix:"aa", suffix:"r", start:2 end:3099 column:1 shelf:40},
-			{prefix:"aa", suffix:"r", start:3100 end:6599 column:1 shelf:29},
-			{prefix:"aa", suffix:"r", start:6600 end:9999 column:1 shelf:22},
-			{prefix:"aa", suffix:"c", start:3 end:4299 column:1 shelf:43},
-			{prefix:"aa", suffix:"c", start:4300 end:9230 column:1 shelf:44},
-			{prefix:"aa", suffix:"c", start:9231 end:9999 column:1 shelf:9},//do sprawdzenia
-			{prefix:"aa", suffix:"u", start:0 end:3319 column:1 shelf:9},
-			{prefix:"aa", suffix:"u", start:3320 end:7169 column:1 shelf:38},
-			{prefix:"aa", suffix:"u", start:7170 end:9999 column:1 shelf:2},
-			{prefix:"aa", suffix:"v", start:0 end:497 column:1 shelf:2},
-			{prefix:"aa", suffix:"v", start:498 end:3785 column:1 shelf:3},
-			{prefix:"aa", suffix:"v", start:3786 end:7041 column:1 shelf:4},
-			{prefix:"aa", suffix:"v", start:7042 end:9999 column:1 shelf:7},
-			{prefix:"aa", suffix:"w", start:0 end:237 column:1 shelf:7},
-			{prefix:"aa", suffix:"w", start:238 end:3517 column:1 shelf:8},
-			{prefix:"aa", suffix:"w", start:3518 end:6725 column:1 shelf:5},
-			{prefix:"aa", suffix:"w", start:6726 end:9999 column:1 shelf:46},
-			{prefix:"aa", suffix:"x", start:1 end:3350 column:1 shelf:47},
-			{prefix:"aa", suffix:"x", start:3351 end:3350 column:1 shelf:47},
-			
-			
-			
-			{suffix:"ja", column:1, shelf:15},
-			{suffix:"hx", column:1, shelf:45},
-			{prefix:"aia", column:3, shelf:24},
-			{suffix:"y", end:6500, column:2, shelf:1},
-			{suffix:"y", start:6501, column:2, shelf:99},
-		];
-		
-		let input  = [];
+	A40: AA 0002R - 3099R 
+	A29: AA 3100R - 6599R 
+	A22: AA 6600R - AA 9999R 
+	A43: AA 0003C - AA 4299C 
+	A44: AA 4300C - AA 9230C 
+	A9: AA 9213C - AA 3319U 
+	A38: AA 3320U - AA 7169U 
+	A2: AA 7170U - AA 0497V 
+	A3: AA 0498V - AA 3785V 
+	A4: AA 3786V - AA 7041V 
+	A7: AA 7042V - AA 0237W 
+	A8: AA 0238W - AA 3517W 
+	A5: AA 3518W - AA 6725W 
+	A46: AA 6726W - AA 9999W 
+
+	A47: AA 0001X - AA 3350X 
+	A28: AA 3351X - AA 6600X 
+	A48: AA 6601X - AA 9961X 
+	A41: AA 9962X - AA 9999X, HF,HG,0-350HH 
+	A14: 351HH,HJ,500HK 
+	A13: 501HK,HL,HM, 
+	A16: HN,HP,0-399HR, 
+	A31: 400HR, HS, 0-799HT
+	A1: HU,HV, 0-500HW,800HT 
+	A15: HV,501HW,HY,JA 
+	A33: CA,CC,0-890CE 
+	A34: 891CE,CF,CG,0-645CH 
+	A10:646CH,CJ,CK,0-370CL 
+	A11:371CL,CM,CN 
+	A12:CP,CR,CS 
+	A27:CT,CU,CV 
+	A6:CW,CX,CY, 
+
+	A18 - AA 001T, AA 001U,AA 001V-900V 
+
+	B6: AA 0001E-AA4659E
+	B12: AA 4660E- AA9000E
+	B13: AA 9002E-AA 3339F
+	B14: AA 3340F - AA7610F
+	B15: AA 7611F - AA 9999F ,AA 0001G-AA1808G
+	B16: AA1809G - AA6265G
+	B21: AA6266G- AA 9999G ,AA 0001H-AA 0629H
+	B24: AA 0630H- AA4810H
+	B25: AA 4811H- AA 8749H
+	B26: AA 8750H- AA 3129J
+	B27: AA 3130J- AA 7110J
+	B28: AA 7111J- AA 1040K
+	B30: AA 1041H - AA 5030K
+	B32:AA 5031K- AA 9070K
+	B33: AA 9071K - AA 9999K,AA 0001L- AA 3120L
+	B41:-AA901V,001W,001HX,AM,AN
+	B37: AA 3122L-AA 7220L
+	B39:AA 7221L-AA 9999L
+	B43: AA 0002N- AA 1810N
+	B35: AA 1811N- AA 5279N
+	B44: AA 5280N- AA 8679N
+	B46: AA 8680N- AA1915P
+	B17: AA 1916P- AA 4969P
+	B48: AA 4970P- AA 8049P
+	B3: AA 8050P- AA 1192S
+	B2: AA 1193S - AA 4319S
+	B20: AA 4320S- AA 7469S
+	B9: AA 7470S- AA 0576T
+	B10: AA 0577T - AA 3820T
+
+	B11: AA 3821T - AA 68889T
+	B31: AA 6890T - AA 9999T
+	B18: AA0001Y - AA 2999Y
+	B45: AA 6181Y - AA 9440Y
+	B36: AA 9441Y - AA,AC,0-760AE
+	B4: AA 761AE,AF,AG,AH,0-250AJ
+	B5: AA 251AJ,AK,AL,0-420AM
+	B19: AA 421AM,AN,AP,0-600AR
+	B22: AA 601AR,AS,AT,0-615AU
+	B29: AA 617AU,AV,AW
+	B38: AX,AY
+	B8: AA 0001-AA 38888
+
+	B34: AA 001L- AA 999L
+	B47: EA,EC
+	B7: EE,0-199EF
+	B23: AA 200EF, EG,EH,0-120EJ
+	B40: AA 121EJ,EK,EL,0-119EM
+	B42: AA 120EM,EN,EP
+
+	C01 ER, ES, 001-630ET
+	C02 631ET, EU, EV,0-370EW
+	C03 371EW, EY, FA,
+	C04 FC, FE, 0-690FF
+	C05 691FF,FG,FH
+	C06 FJ, FK
+	C07 FL, FM, 0-499FN
+	C08 500FN, FP, FR
+	C09 FS, FT, 0-499FU
+	C10 AA 3000Y - AA6180Y
+	C11 500FU, FV, FW
+	C12 FY, GA, 499GC
+
+	C14 500GC, GE, 499GF
+	C15 500GF, GG, GH
+	C16 GJ, GK,001-300GL
+	C17 331GL, GM,001-600GN
+	C18 601GN, GP,001-800GR
+	C19 801GR, GS,GT
+
+	C20 GU,GV,001-370GW
+	C21 371GW,GY,001-700HA
+	C22 701HA,HC,HE
+	C26 AA001R-999R, AA 0-999S, AA 001-999GX
+	C27 AA 0001M - 3719M
+	C28 AA 3720M - 6839M
+	C29 AA 6840M - 9599M
+	C25 AA 9600M - 9999M, EX, FX
+
+	A42 length:4
+	`;
+
+	var test = `	C24 AGR..-PR..
+	C23 PS..-Z..`;
+	var storage = raw_storage_key_to_array(raw_storage_key);
+	var original_color = document.getElementById("draganddrop_field").style.backgroundColor;
+	var column_names = {
+		"a": "Szafa #1",
+		"b": "Szafa #2",
+		"c": "Szafa #3",
+		"p": "Piwnica",
+		"non_matching": "Nieprzypisane",
+	}
+	
+	function parse_registration_number(input_text) {
 		let output = {
-			"1":{},
-			"2":{},
-			"3":{},
-			"non_matching":{},
+			prefix:'', 
+			prefix_range: '',
+			suffix:'', 
+			number:0, 
+			digits_count:0
 		};
+		let letters_before_number = "";
+		let letters_after_number = "";
+		let digits = "";
+
+		if (input_text.substr(-2) == '..') {
+			output.prefixrange = input_text.substr(0,-2);
+			return output;
+		}
+
+		input_text.toLowerCase().match(/[a-zA-Z]+|[0-9]+/g).forEach(item => {
+			if (/^\d+$/.test(item)) {
+				digits = item;
+			} else {
+				if (digits.length == 0) {
+					letters_before_number = item;
+				} else {
+					letters_after_number = item;
+				}
+			}
+		});
+
+		if (digits.length > 0) {
+			output.number = parseInt(digits);
+			output.digits_count = digits.length;
+		}
+
+		if (letters_before_number.length > 0 && digits.length > 0) {
+			output.prefix = letters_before_number;
+		}
+
+		if (digits.length==0 && letters_before_number.length > 0) {
+			output.suffix = letters_before_number;
+		}
+
+		if (letters_after_number.length > 0) {
+			output.suffix = letters_after_number;
+		}
+
+		return output;
+	}
+
+	function raw_storage_key_to_array(input_text) {
+		function is_space(input_character) {
+			return /\s/.test(input_character);
+		}
+
+		function is_separator(input_character) {
+			return is_space(input_character) || input_character==':' || input_character=='-';
+		}
+
+		function pad_number(input) {
+			const max_digits = 5;		
+			return parseInt('9'.repeat(max_digits - input.length));
+		}
+
+		let output = {
+			pattern: [],
+			columns: [],
+		};
+		const default_prefix = "aa";
+
+		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
+			line = line.trim();
+			if (line.length > 0) {
+				let identifier = "";
+				let i = 0;
+
+				while(i<line.length && !is_separator(line[i])) {
+					identifier += line[i++];
+				}
+
+				let column = 0;
+				let shelf = 0;
+				let identifier_items = identifier.match(/[a-zA-Z]+|[0-9]+/g);
+				if (identifier_items.length >= 2) {
+					column = identifier_items[0];
+					shelf = parseInt(identifier_items[1]);
+				}
+				
+				if (!output.columns.includes(column)) {
+					output.columns.push(column);
+				}
+
+				let tokens = line.substr(i+1).split(/,/);
+				
+				tokens.forEach(token => {
+					token = token.trim();
+					//console.log("token: "+token);
+					if (token.length > 0) {
+						const keyword_length = 'length:';
+						if (token.substr(0,keyword_length.length) == keyword_length) {
+							output.pattern.push({
+								column: column,
+								shelf: shelf,
+								prefix: '',
+								start: 0,
+								end: 0,
+								suffix: '',
+								digits_count: 0,
+								prefix_start: '',
+								prefix_end: '',
+								length: parseInt(token.substr(keyword_length.length)),
+							});
+						} else {
+							let range = [];
+							token.split(/-/).forEach((item) => {
+								item = item.trim().replaceAll(/\s/g, '');
+								if (item.length > 0) {
+									range.push(item);
+								}
+							});
+							
+							//console.log("range: "+range);
+							if (range.length >= 2) {
+								let range_start = parse_registration_number(range[0]);
+								let range_end = parse_registration_number(range[1]);
+								//console.log("range_start:");
+								//console.log(range_start);
+								//console.log("range_end:");
+								//console.log(range_end);
+	
+								output.pattern.push({
+									column: column,
+									shelf: shelf,
+									prefix: range_start.prefix.length > 0 ? range_start.prefix : default_prefix,
+									start: range_start.number,
+									end: range_end.number,
+									suffix: range_start.suffix.length > 0 ? range_start.suffix : range_end.suffix,
+									digits_count: range_end.digits_count,
+									prefix_start: range_start.prefix_range,
+									prefix_end: range_end.prefix_range,
+								});
+								//console.log("result:");
+								//console.log(output.pattern[output.pattern.length-1]);
+							} else if (range.length == 1) {
+								let range_start = parse_registration_number(range[0]);
+								//console.log("range_start:");
+								//console.log(range_start);
+	
+								output.pattern.push({
+									column: column,
+									shelf: shelf,
+									prefix: range_start.prefix.length > 0 ? range_start.prefix : default_prefix,
+									start: range_start.number,
+									end: pad_number(range_start.suffix),
+									suffix: range_start.suffix,
+									digits_count: pad_number(range_start.suffix).toString().length,
+								});
+								//console.log("result:");
+								//console.log(output.pattern[output.pattern.length-1]);
+							}
+
+						}
+					}
+				});
+			}
+		});
+
+		return output;
+	}
+
+	function sort_numbers_to_shelves(input_text, storage) {
+		let output = {"non_matching":[], total_count:0, count:{}};
+		storage.columns.forEach(name => {output[name]=[]; output.count[name]=0});
+		output.count.non_matching = 0;
 		
 		function is_numeric(str) {
 			if (typeof str != "string") return false
 			return !isNaN(str) && !isNaN(parseFloat(str))
 		}
 		
-		input_string.split(/\r?\n/).forEach(function(item, index, array) {
-			item = item.replace(/\s/g, '');
-			if (item.length > 0) {
-				let new_item = ["", "", ""];
-				let cut      = item.length;
-				
-				for(let i=0; i<=3 && i<item.length; i++) {
-					//console.log(item[i] + ": " + (is_numeric(item[i])));
-					cut = i;
-					
-					if (is_numeric(item[i]))
-						break;
-				}
-				
-				new_item[0] = item.slice(0,cut);
-				new_item[1] = item.slice(cut);
-				cut         = new_item[1].length;
-				
-				for(let i=new_item[1].length-1; i>=0; i--) {
-					//console.log(new_item[1][i] + ": " + (is_numeric(new_item[1][i])));
-					if (!is_numeric(new_item[1][i]))
-						cut = i;
-				}
-				
-				if (cut != new_item[1].length) {
-					new_item[2] = new_item[1].slice(cut);
-					new_item[1] = new_item[1].slice(0,cut);
-				}
-				
-				input.push(new_item);
-				//console.log(new_item);
-			}
-		});
-		
-		input.forEach((registration_number) => {
-			let matched = false;
-			for(let i=0; i<storage_pattern.length && !matched; i++) {
-				if (
-					(!storage_pattern[i].hasOwnProperty("prefix") || registration_number[0]==storage_pattern[i].prefix)
-					&&
-					(!storage_pattern[i].hasOwnProperty("suffix") || registration_number[2]==storage_pattern[i].suffix)
-					&&
-					(!storage_pattern[i].hasOwnProperty("start") || is_numeric(registration_number[1]) && parseInt(registration_number[1]) >= storage_pattern[i].start)
-					&& 
-					(!storage_pattern[i].hasOwnProperty("end") || is_numeric(registration_number[1]) && parseInt(registration_number[1]) <= storage_pattern[i].end)
-				) {
-					if (!output[storage_pattern[i].column].hasOwnProperty(storage_pattern[i].shelf)) {
-						output[storage_pattern[i].column][storage_pattern[i].shelf] = [];
+		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
+			line = line.replace(/\s/g, '');
+			if (line.length > 0) {
+				let current = parse_registration_number(line);
+				let matched = false;
+
+				for(let i=0; i<storage.pattern.length && !matched; i++) {
+					if (
+						(storage.pattern[i].hasOwnProperty('length') &&
+						line.length == storage.pattern[i].length)
+						||
+						(current.prefix == storage.pattern[i].prefix && 
+						current.suffix == storage.pattern[i].suffix && 
+						current.number >= storage.pattern[i].start && 
+						current.number <= storage.pattern[i].end && 
+						current.digits_count == storage.pattern[i].digits_count)
+						 
+					) {
+						output[storage.pattern[i].column].push(storage.pattern[i].shelf + ": " + line);
+						output.count[storage.pattern[i].column]++;
+						output.total_count++;
+						matched = true;
 					}
-
-					output[storage_pattern[i].column][storage_pattern[i].shelf].push(registration_number.join(""));
-					matched = true;
+				}
+				
+				if (!matched) {
+					output.non_matching.push(line);
+					output.count["non_matching"]++;
+					output.total_count++;
 				}
 			}
-			
-			if (!matched) {
-				output.non_matching.push(registration_number.join(""));
-			}
-		});
-			
-		Object.keys(output).forEach(column => {
-			document.getElementById(column).innerHTML = "";
-			
-			Object.keys(output[column]).forEach(shelf => {
-				output[column][shelf].sort();
-				document.getElementById(column).innerHTML += "<b>"+shelf+"</b>: " + output[column][shelf].join(", ") + "<br>";
-			});
 		});
 		
-		global_buffer = output;
-		//console.log(output);
+		return output;
 	}
 
-	// functions for importing excel file
-	function DropHandler(event, field) {
+
+	input.addEventListener("input", function(e){
+		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage));
+	});
+
+	document.addEventListener("DOMContentLoaded", function(event) {
+		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(document.getElementById("input").value, storage));
+	});
+	
+	function drop_handler(event, field) {
 		event.preventDefault();
-		ParseDroppedFile(event.dataTransfer);
-		field.style.backgroundColor = "transparent";
+		parse_dropped_file(event.dataTransfer);
+		field.style.backgroundColor = original_color;
 	}
 	
-	function DragOverHandler(event, field, enable) {
+	function drag_over_handler(event, field, enable) {
 		event.preventDefault();
-		field.style.backgroundColor = enable ? "coral" : "transparent";
+		field.style.backgroundColor = enable ? "coral" : original_color;
 	}
-	
-	function ParseDroppedFile(input) {
+
+	function parse_dropped_file(input) {
 		readXlsxFile(input.files[0]).then(function(rows) {
 			let text = "";
 			
@@ -249,63 +442,108 @@
 					text += row[6] + "\n";
 				}
 			});
-			
-			sortNumbersToColumns(text);
+
+			let textarea = document.getElementById("input");
+			textarea.value = text;
+			textarea.dispatchEvent(new Event('input'));
 		});
 	}
-	
-	function GenerateSpreadsheet() {
-		if (global_buffer.length == 0)
-			return;
+
+
+	function generate_html_table(sorted_numbers) {
+		if (sorted_numbers.total_count == 0) {
+			return '';
+		}
 		
+		let key = [];
+		Object.keys(column_names).forEach(column_name => {
+			if (sorted_numbers.count[column_name] > 0) {
+				key.push(column_name);
+			}
+		});
+
+		let thead = '';
+		let highest_count = 0;
+		key.forEach(name => {
+			thead += '<th>' + column_names[name] + '</th>';
+
+			if (sorted_numbers.count[name] > highest_count) {
+				highest_count = sorted_numbers.count[name];
+			}
+		});
+
+		let j = 0;
+		let rows = '';
+		
+		for(let j=0; j<highest_count; j++) {
+			let row = '';
+			
+			for(let i=0; i<key.length; i++) {				
+				row += '<td>' + (sorted_numbers[key[i]] && sorted_numbers[key[i]][j] ? sorted_numbers[key[i]][j] : '') + '</td>';
+			}
+			
+			rows += '<tr>' + row + '</tr>';
+		}
+
+		return '<table><thead><tr>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>';
+	}
+
+	function generate_spreadsheet(sorted_numbers) {
+		if (sorted_numbers.total_count == 0) {
+			alert("Nic nie ma!");
+			return;
+		}
+
+		let key = [];
+		Object.keys(column_names).forEach(column_name => {
+			if (sorted_numbers.count[column_name] > 0) {
+				key.push(column_name);
+			}
+		});
+
 		let excel_rows = [[]];
-		let parallel_list = [];
 		let columns = [];
-			
-		Object.keys(global_buffer).forEach(function(column, index, array) {
-			excel_rows[0].push({value:column, fontWeight:'bold'});
-			columns.push({width:column.length + 1});
-			parallel_list.push([]);
-			
-			Object.keys(global_buffer[column]).forEach(shelf => {
-				global_buffer[column][shelf].forEach(registration_number => {
-					parallel_list[index].push(shelf+": " + registration_number);
-				});
+		let highest_count = 0;
+		const min_width = 7;
+
+		key.forEach(name => {
+			excel_rows[0].push({
+				value: column_names[name], 
+				fontWeight: 'bold',
+				align: 'center',
+				backgroundColor: '#afb3b1',
 			});
+
+			let width = name.length + 1;
+			columns.push({width:width < min_width ? min_width : width});
+
+			if (sorted_numbers.count[name] > highest_count) {
+				highest_count = sorted_numbers.count[name];
+			}
 		});
 		
-		let j = 0;
-		let null_count = 0;
-		
-		while(true) {
+		for(let j=0; j<highest_count; j++) {
 			let excel_row = [];
 			
-			for(let i=0; i<parallel_list.length; i++) {
-				let current_value = '';
+			for(let i=0; i<key.length; i++) {
+				let current_value = sorted_numbers[key[i]] && sorted_numbers[key[i]][j] ? sorted_numbers[key[i]][j] : '';
 				
-				if (parallel_list[i][j]) {
-					current_value = parallel_list[i][j];
-				} else {
-					null_count++;
+				excel_row.push({
+					type: String, 
+					value: current_value,
+				});
+
+				if (j % 2) {
+					excel_row[excel_row.length-1].backgroundColor = '#e4e4e4';
 				}
-				
-				excel_row.push({type:String, value:current_value});
 				
 				if (current_value.length > columns[i].width) {
 					columns[i].width = current_value.length;
 				}
 			}
-			
-			if (null_count < parallel_list.length) {
-				excel_rows.push(excel_row);
-				null_count = 0;
-				j++;
-			} else {
-				break;
-			}
+
+			excel_rows.push(excel_row);
 		}
-		
-		//console.log(excel_rows);
 		
 		var today = new Date();
 		var dd    = String(today.getDate()).padStart(2, '0');
@@ -318,6 +556,16 @@
 			columns,
 			fileName: 'lista' + yyyy + '_' + mm + '_' + dd + '-' + hh + '-' + min + '.xlsx'
 		})
+	}
+
+	function print_html_table() {
+		if (document.getElementById("output").innerHTML == "") {
+			alert("Nie ma nic do wydrukowania");
+			return;
+		}
+
+		document.getElementById('controls').style.display = 'none';
+		print();
 	}
 	</script>
 </body>
