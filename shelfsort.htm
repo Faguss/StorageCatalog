@@ -50,7 +50,9 @@
 
 		<textarea id="input"></textarea>
 		<br>
-		<button type="button" onclick="generate_spreadsheet(sort_numbers_to_shelves(document.getElementById('input').value, storage))" style="margin-bottom:25px">Utwórz plik excel</button>
+		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Po znalezieniu numeru szukaj dalej w pozostałych zakresach</label>
+		<br>
+		<button type="button" onclick="generate_spreadsheet(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))" style="margin-bottom:25px">Utwórz plik excel</button>
 		<button type="button" onclick="print_html_table()">Wydrukuj</button>
 	</span>
 	<div id="output"></div>
@@ -161,7 +163,6 @@
 	B38: AX,AY,AA 3889-AA 4611
 	B8: AA 0001-AA 3888
 
-	B34: AA 001L- AA 999L
 	B47: EA,EC
 	B7: EE,0-199EF
 	B23: AA 200EF, EG,EH,0-120EJ
@@ -181,7 +182,7 @@
 	C11 500FU, FV, FW
 	C12 FY, GA, 0-499GC
 	C13 AAA*,AAU*,AAA*
-	C24 AGR*,AHA*,AK..-PRZ..
+	C24 AGR*,AHA*,AKL*,AL*,ALM*,AMN*,AS*,ASE*,ASI*,ASK*,ASU*,AWM*,AZA*,C..-PR..
 	C23 PS..-ZZZ..
 
 	C14 500GC, GE, 0-499GF
@@ -194,58 +195,64 @@
 	C20 GU,GV,0-370GW
 	C21 371GW,GY,0-700HA
 	C22 701HA,HC,HE
-	C27 AA 0001M - AA 1330M
-	C28 AA 4331M - 8169M
-	C29 AA 8170M - 9999M, EX
+	C27 AA 0001M - AA 4330M
+	C28 AA 4331M - AA 8169M
+	C29 AA 8170M - AA 9999M, EX
 	C25 FX, GX, 0-600HX
 	C26 AA 001R-999R, AA 0-999S, AA 001L, 601HX
 
-	P1PD1 AAB 001S-AAB 22901
+	A42 length:4
+	A42 startswith:letter|digit|letter
+
+	P1PA1 AAA 0005-AAA 3647
+	P1PB1 AAA 3652-AAA 6715
+	P1PC1 AAA 6716-AAA 9366
+	P1PD1 AAA 9377-AAA 9997, AAB 0015-AAB 2291
 	P1PA2 AAB 2304-AAB 5561
 	P1PB2 AAB 5569-AAB 8835
 	P1PC2 AAB 8837-AAB 9996,AAH 0004-AAH 1635
 	P1PD2 AAH 1376-AAH 4610
 	P1PA3 AAH 4615-AAH 8024
-	P1PB3 AAH 8034-AAH 9999
-	P1PC3 AAK 0013-AAK 0451
+	P1PB3 AAH 8034-AAH 9992, AAK 0013-AAK 0964
+	P1PC3 AAK 0975-AAK 4051
 	P1PD3 AAK 4056-AAK 7573
 	P1PA4 AAK 7582-AAK 9998, AAM 0002-AAM 1241
 	P1PB4 AAM 1271-AAM 4613
 	P1PC4 AAM 4614-AAM 7854
 	P1PD4 AAM 7858-AAM 9995,AAO 0004-AAO 1453
-	P1PA5 AAO 1460-AAO-4879
-	P1PB5 AAO 4890-AAO-8523
-	P1PC5 AAO 8662-AAO-9978,AAZ 0013-AAZ 1519
+	P1PA5 AAO 1460-AAO 4879
+	P1PB5 AAO 4890-AAO 8523
+	P1PC5 AAO 8562-AAO 9978,AAZ 0013-AAZ 1519
 	P1PD5 AAZ 1523-AAZ 3366, AA 001C-AA 299C
 	P1PA6 AA 301C-AA 955C
 	P1PB6 AA 956C-AA 998C,AA 001F-AA 668F
-	P1PC6 AA 669F-AA 999F, AA 001A-AA640A
+	P1PC6 AA 669F-AA 998F, AA 001A-AA640A
 	P1PD6 AA 642A-AA 997A, AA 001E-AA 640E
 
-	P2LD1 AA 644E-AA 998E,AA 0016-AA 5976
-	P2LC1 AA 6026-AA 9966,AA 001H-AA 508H
+	P2LD1 AA 644E-AA 998E,AA 001G-AA 597G
+	P2LC1 AA 602G-AA 996G,AA 001H-AA 508H
 	P2LB1 AA 511H-AA 998H,AA 004J-AA 386J
 	P2LA1 AA 388J-AA 997J,AA 006K-AA 195K
 	P2LD2 AA 196K-AA 994K,AA 001M-AA 052M
 	P2LC2 AA 053M-AA 857M
 	P2LB2 AA 858M-AA 998M,AA 003N-AA 627N
-	P2LA2 AA 628N-AA 003P,AA 003P-AA 398P
+	P2LA2 AA 628N-AA 999N,AA 003P-AA 398P
 	P2LD3 AA 400P-AA 999P,AAM 0006-AAM 0917
 	P2LC3 AAM 0932-ATM 5269
 	P2LB3 ATM 5274-ATM 9904
 	P2LA3 ATM 9928-ATM 9999,ATN 9902-ATN 9992, ATO 0007-ATO 3479
 	P2LD4 ATO 3480-ATO 6858
-	P2LD5 ATO 6868-ATO 9997, ATZ 0008-ATZ 9997
+	P2LD4 ATO 6868-ATO 9997, ATZ 0008-ATZ 0292
 	P2LB4 ATZ 0303-ATZ 3526
 	P2LA4 ATZ 3532-ATZ 6829
 	P2LD5 ATZ 6832-ATZ 9836
 	P2LC5 ATZ 9839-ATZ 9995, ATV 0002-ATV 2626
 	P2LB5 ATV 2629-ATV 9899
 
-	P2PA1 ATO 0017-ATO 9989,ATS 0038-ATS 3476
-	P2PB1 ATS 3482-ATS 9992,ATV 0027-ATV 3192
-	P2PC1 ATV 3193-ATV 9995,ATX 0051-ATX 3130
-	P2PD1 ATX 3145-ATX 9994,ATB 0031-ATB 1600
+	P2PA1 AKO 0017-AKO 9989,AKS 0038-AKS 3476
+	P2PB1 AKS 3482-AKS 9992,AKV 0027-AKV 3192
+	P2PC1 AKV 3193-AKV 9995,AKX 0051-AKX 3130
+	P2PD1 AKX 3145-AKX 9994,ATB 0031-ATB 1600
 	P2PA2 ATB 1601-ATB 9999,ATC 0008-ATC 0398
 	P2PB2 ATC 0434-ATC 6847
 	P2PC2 ATC 6851-ATC 9989,ATG 0002-ATG 3667
@@ -267,8 +274,67 @@
 	P2PC6 AA 7782A-AA 8414A
 	P2PD6 AA 8416A-AA 9093A
 
-	A42 length:4
-	A42 startswith:letter|digit|letter
+	P3LD5 AA 9095A-AA 9751A
+	P3LD6 AA 9752A-AA 9999A
+
+	P3PA1 AKA 0044-AKA 4699,AKG 7005-AKG 8745,AKH 0201-AKH 3068,AKL 0001-AKL 0098,AKN 2001-AKN 2357,AKA 003C-AKA 924C,AKA 005B-AKA 122B
+	P3PB1 AKA 138B-AKA 991B,AKA 023D-AKA 812D,ATT 2508-ATT 9999,ATJ 2201-ATJ 6143,AKA 814D-AKA 998D,AKA 007E-AKA 974E,AKA 003Y-AKA 994Y,AKB 101B-AKB 630B,AKB 002C-AKB 990C,AKB 835E-AKB 835E,AKB 804H-AKB 804H,AKB 003R-AKB 657R
+	P3PC1 AKB 658R-AKB 997R,AKB 001S-AKB 998S,AKD 003E-AKD 990E,AKD 002G-AKD 994G,AKD 005H-AKD 747H
+	P3PD1 AKD 750H-AKD 996H,AKD 054K-AKD 849K,AKM 001B-AKM 098B,AKP 009B-AKP 919B,AKP 007C-AKP 995C,AKP 002X-AKP 868X,AKB 021V-AKB 595V
+	P3PA2 AKB 475V-AKB 998V,AKB 019Y-AKB 996Y,AKB 002Z-AKB 989Z,AKC 023B-AKC 492B,AKD 005B-AKD 998B,AKD 004C-AKD 984C,AKD 004D-AKD 992D,ATX 0302-ATX 0973
+	P3PB2 ATX 0979-ATX 4433
+	P3PC2 ATX 4435-ATX 7790
+	P3PD2 ATX 7797-ATX 8998,ATI 0001-ATI 2474
+	P3PA3 ATI 2476-ATI 6867,AAJ 1002-AAJ 2308
+	P3PB3 AAJ 2309-AAJ 5536,AKF 4703-AKF 5327
+	P3PC3 AKF 5328-AKF 6501,AKA 0008-AKA 4447
+	P3PD3 AKA 4449-AKA 6198,AKK 2004-AKK 2500
+	P3PA4 AA 01A-AA 99A,AA 01C-AA 98C,AA 01E-AA 99E
+	P3PB4 AA 01F-AA 99F,AA 01G-AA 59G,AF 35-AF35,AJ 83-AJ 83,AA 4504-AA 4504
+
+	P4LD1 AA 6597V-AA 9661V
+	P4LC1 AA 9669V-AA 9992V, AA 0001W-AA 2620W
+	P4LB1 AA 2626W-AA 6431W
+	P4LA1 AA 6424W-AA 9980W, AA 0027X-AA 0929X
+	P4LD2 AA 0935X-AA 5334X
+	P4LC2 AA 5341X-AA 9982X,AA 0002Y-AA 0502Y
+	P4LB2 AA 0503Y-AA 5556Y
+	P4LA2 AA 5592Y-AA 9999Y, AA 002AA-AA 483AA
+	P4LD3 AA 485AA-AA 969AA,AA 005AC-AA 987AC,AA 032AE-AA 999AE,AA 001AF-AA 985AF,AA 008AG-AA 584AG
+	P4LC3 AA 592AG-AA 964AG,AA 008AH-AA 963AH,AA 037AJ-AA 966AJ,AA 014AK-AA 986AK,AA 002AL-AA 713AL
+	P4LB3 AA 740AL-AA 999AL,AA 008AM-AA 995AM,AA 006AN-AA 997AN,AA 017AP-AA 947AP,AA 004AR-AA 948AR, AA 002AS-AA 476AS,AA 477AS-AA 996AS
+	P4LA3 AA 477AS-AA 996AS,AA 086AT-AA 992AT,AA 015AV-AA 874AV,AA 046AV-AA 986AV,AA 002AW-AA 972AW,AA 001AX-AA 413AX
+	P4LD4 AA 447AX-AA 991AX,AA 019AY-AA 993AY,AA 021CA-AA 910CA,AA 041CC-AA 993CC,AA 007CE-AA 942CE,AA 008CF-AA 966CF,AA 006CG-AA 968CG,AA 031CH-AA 675CH
+	P4LC4 AA 761CH-AA 987CA,AA 014CJ-AA 983CJ,AA 030CK-AA 951CK,AA 300CL-AA 883CL,AA 015CM-AA 701CM,AA 059CN,AA 298CP-AA 872CP,AA 036CR-AA 669CR,AA 113CS-AA 456CS,AA 045A-AA 846A,AA 005C-AA 912C,AA 217E-AA 981E,AA 055F-AA 999F,AA 036G-AA 997G,AA 009H-AA 990H,AA 040J-AA 454J
+	P4LB4 AA 455J-AA 998J,AA 026K-AA 996K,AA 006L-AA 948L,AA 017M-AA 991M,AA 027N-AA 840N
+	P4LA4 AA 849N-AA 996N,AA 016P-AA 996P,AA 003R-AA 582R,AA 0207-AA 3905,AAA 1252-AAA 9434,AAB 0632-AAB 9998,AAH 0466-AAH 4004
+	P4LD5 AAH 4098-AAH 9813,AAJ 1143-AAJ 3036,AAK 0202-AAK 9379,AAM 0043-AAM 9032,AAO 0121-AAO 9631,AAZ 0032-AAZ 3079,AKA 3940-AKA 3950,AKK 2200-2200,AKN 2209-2208,AKO 3092-3092,AKX 1233-1233,ATB 4261-ATB 6195,ATC 0703-ATC 7569,ATG 0049-ATG 8344,ATH 0408-ATH 9636,ATI 2516-ATI 3582,ATJ 2210-ATJ 5445,ATK 6831-6831,ATM 0922-ATM 7293,AT 04005-04005,ATO 0565-ATO 5650,ATT 6491-ATT 9976,ATZ 0819-ATZ 9061,ATV 0304-ATV 9885,ATX 0318-ATX 1857
+	P4LC5 ATX 2000-ATX 8958,A047-A286,AA 22A-AA 55A,AA 51E-51E,AMC 001-001,A2 2852-A2 5219,AA 02-AA 05
+
+	P4PA1 AA 00072-AA 14523
+	P4PB1 AA 14660-AA 24790
+	P4PC1 AA 24920-AA 35574
+	P4PD1 AA 36067-AA 46672
+	P4PA2 AA 46696-AA 53961
+	P4PB2 AA 53999-AA 63662
+	P4PC2 AA 63705-AA 72193
+	P4PD2 AA 72236-AA 80001
+	P4PA3 AA 80008-AA 87219
+	P4PB3 AA 87290-AA 93995
+	P4PC3 AA 94036-AA 99912,AA 0013A-AA 0558A
+	P4PD3 AA 0563A-AA 9993A,AA 0074C-AA 1658C
+	P4PA4 AA 1680C-AA 7718C
+	P4PB4 AA 7781C-AA 9986C,AA 0008E-AA 3162E
+	P4PC4 AA 3186E-AA 8191E
+	P4PD4 AA 8195E-AA 9974E,AA 0027F-AA 4278F
+	P4PA5 AA 4288F-AA 9758F
+	P4PB5 AA 9783F-AA 9939F,AA 0020G-AA 5177G
+	P4PC5 AA 5200G-AA 9857G
+	P4PD5 AA 9870G-AA 9927G,AA 0006H-AA 3498H
+	P4PA6 AA 3508H-AA 8546H
+	P4PB6 AA 8563H-AA 9988H,AA 0017J-AA 2986J
+	P4PC6 AA 3029J-AA 7558J
+	P4PD6 AA 7623J-AA 9970J,AA 0033K-AA 2570K
 	`;
 
 	var raw_storage_map = `
@@ -411,7 +477,7 @@
 	`;
 
 	var test = `
-	A42: startswith:letter|digit|letter
+	A10:646CH,CJ,CK,0-370CL
 	`;`
 	C6 AGR..-PRZ..
 	C2 AA 0001U - AA 3319U
@@ -527,6 +593,11 @@
 				return output;
 			}
 
+			function parse_id_number(input_text) {
+				let prefix = '';
+
+			}
+
 			tokens.forEach(token => {
 				token = token.trim();
 				if (token.length == 0)
@@ -634,7 +705,7 @@
 		return output;
 	}
 
-	function sort_numbers_to_shelves(input_text, storage) {
+	function sort_numbers_to_shelves(input_text, storage, continue_search=false) {
 		let output = {
 			columns: {non_matching: []},
 			total_count: 0, 
@@ -654,69 +725,84 @@
 			return target == array[1];
 		}
 
-		function get_number(line, prefix) {
-			if (prefix.length > 0 && line.substring(0,prefix.length)==prefix)
-				line = line.substring(prefix.length);
+		function parse_id_number(input, custom_prefix='') {
+			let output = {
+				prefix: '',
+				number: -1,
+				digits: 0,
+				suffix: '',
+			};
 
-			if (line.length > 0) {
-				let parts = line.match(/[a-zA-Z]+|[0-9]+/g);
-			
-				if (parts) {
-					for(let i=0; i<parts.length; i++) {
-						if (is_numeric(parts[i]))
-							return parts[i];
-					}
+			const PREFIX_MAX_LEN = 3;
+			const SUFFIX_MAX_LEN = 2;
+
+			let i = 0;
+
+			if (custom_prefix.length > 0) {
+				if (input.substring(0,custom_prefix.length) == custom_prefix) {
+					i = custom_prefix.length;
 				}
+			} else {
+				while (i<input.length && !is_numeric(input[i]) && i<PREFIX_MAX_LEN) i++;
+			}
+			output.prefix = input.substring(0,i);
+
+			let j = input.length - 1;
+			while (i>=0 && !is_numeric(input[j]) && j>input.length-1-SUFFIX_MAX_LEN) j--;
+			output.suffix = j<input.length-1 ? input.substring(j+1) : '';
+
+			let temp = input.substring(i, j+1);
+			if (is_numeric(temp)) {
+				output.number = parseInt(temp);
+				output.digits = temp.length;
+			} else {
+				output.suffix = '';
 			}
 
-			return '-1';
+			return output;
 		}
-		
+
+		function compare_prefix(current_id, current, pattern_prefix) {
+			if (pattern_prefix!=DEFAULT_PREFIX && /[0-9]/.test(pattern_prefix)) {
+				return parse_id_number(current_id, pattern_prefix).prefix == pattern_prefix;
+			} else {
+				return current.prefix == pattern_prefix;
+			}
+		}
+
 		input_text.split(/\r?\n/).forEach(line => {
-			let current = line.toLowerCase().replace(/\s/g, '');
-			if (current.length == 0) 
+			let current_id = line.toLowerCase().replace(/\s/g, '');
+			if (current_id.length == 0) 
 				return;
 
-			let parts = current.match(/[a-zA-Z]+|[0-9]+/g);
-			let current_prefix = parts.length > 0 ? parts[0] : '';
-			let current_number = parts.length > 1 ? parts[1] : '-1';
-			let suffix = parts.length>0 && parts[parts.length-1]!=current_number ? parts[parts.length-1] : '';
+			let current = parse_id_number(current_id);
 			let matched = false;
 
-			for(let i=0; i<storage.pattern.length && !matched; i++) {
-				let prefix = current_prefix;
-				let number = current_number;
-
-				// todo: handle this with a function
-				if (storage.pattern[i].hasOwnProperty('prefix') && /[0-9]/.test(storage.pattern[i].prefix)) {
-					prefix = current.substring(0,storage.pattern[i].prefix.length);
-					number = get_number(current,storage.pattern[i].prefix);
-				}
-
+			for(let i=0; i<storage.pattern.length && (!matched || continue_search); i++) {
 				if (
 					(!storage.pattern[i].hasOwnProperty('length') ||
-					current.length == storage.pattern[i].length)
+					current_id.length == storage.pattern[i].length)
 					&&
 					(!storage.pattern[i].hasOwnProperty('regex') ||
-					storage.pattern[i].regex.test(current))
+					storage.pattern[i].regex.test(current_id))
 					&&
 					((!storage.pattern[i].hasOwnProperty('prefix_start') && !storage.pattern[i].hasOwnProperty('prefix_end')) || 
-					compare_letters(storage.pattern[i].prefix_start,parts[0],storage.pattern[i].prefix_end))
+					compare_letters(storage.pattern[i].prefix_start,current.prefix,storage.pattern[i].prefix_end))
 					&&
 					(!storage.pattern[i].hasOwnProperty('prefix') ||
-					prefix == storage.pattern[i].prefix)
+					compare_prefix(current_id, current, storage.pattern[i].prefix))
 					&&
 					(!storage.pattern[i].hasOwnProperty('suffix') ||
-					suffix == storage.pattern[i].suffix)
+					current.suffix == storage.pattern[i].suffix)
 					&&
 					((!storage.pattern[i].hasOwnProperty('start') || !storage.pattern[i].hasOwnProperty('end') || !storage.pattern[i].hasOwnProperty('digits')) ||
-					parseInt(number) >= storage.pattern[i].start && parseInt(number)<=storage.pattern[i].end && number.length==storage.pattern[i].digits)
+					current.number >= storage.pattern[i].start && current.number<=storage.pattern[i].end && current.digits==storage.pattern[i].digits)
 				) {
 					if (!initial_list[storage.pattern[i].column].hasOwnProperty(storage.pattern[i].shelf)) {
 						initial_list[storage.pattern[i].column][storage.pattern[i].shelf] = [];
 					}
 
-					initial_list[storage.pattern[i].column][storage.pattern[i].shelf].push(line);
+					initial_list[storage.pattern[i].column][storage.pattern[i].shelf].push({ruleid:i,text:line});
 					output.total_count++;
 					matched = true;
 				}
@@ -730,9 +816,9 @@
 
 		storage.columns.forEach(name => {
 			if (!Object.keys(storage.map).includes(name)) {
-				Object.keys(initial_list[name]).forEach(subarray_key => {
+				Object.keys(initial_list[name]).sort().forEach(subarray_key => {
 					initial_list[name][subarray_key].forEach(item => {
-						output.columns[name].push(subarray_key+': '+item);
+						output.columns[name].push(subarray_key+': '+item.text);
 					});
 				});
 				return;
@@ -742,7 +828,13 @@
 			let smaller_half = [];
 
 			Object.keys(initial_list[name]).forEach(subarray_key => {
-				initial_list[name][subarray_key].sort();
+				initial_list[name][subarray_key].sort(function(x,y) {
+					if (x.ruleid < y.ruleid) return -1;
+					if (x.ruleid > y.ruleid) return 1;
+					if (x.text < y.text) return -1;
+					if (x.text > y.text) return 1;
+					return 0;
+				});
 
 				if (
 					(storage.map[name].entry_is_up && storage.map[name][subarray_key] >= storage.map[name].entry_point) 
@@ -772,7 +864,7 @@
 
 			smaller_half.forEach(key => {
 				initial_list[name][key].forEach(item => {
-					output.columns[name].push(key+': '+item);
+					output.columns[name].push(key+': '+item.text);
 				})
 			});
 		});
@@ -782,11 +874,16 @@
 
 
 	input.addEventListener("input", function(e){
-		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage));
+		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById("continuesearch").checked));
+	});
+
+	document.getElementById("continuesearch").addEventListener("input", function(e){
+		let textarea = document.getElementById("input");
+		textarea.dispatchEvent(new Event('input'));
 	});
 
 	document.addEventListener("DOMContentLoaded", function(event) {
-		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(document.getElementById("input").value, storage));
+		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(document.getElementById("input").value, storage, document.getElementById("continuesearch").checked));
 	});
 	
 	function drop_handler(event, field) {
