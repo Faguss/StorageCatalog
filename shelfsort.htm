@@ -5,9 +5,17 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title>Storage sorting</title>
+	<script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
+	<script src="https://unpkg.com/write-excel-file@1.x/bundle/write-excel-file.min.js"></script>
 </head>
 
 <body>
+	<div style="background-color:gray;min-height:100px;margin-bottom:25px;max-width:200px" id="gs_drop_zone" class="gs_drop_zone" ondrop="DropHandler(event, this);" ondragover="DragOverHandler(event, this, 1);" ondragleave="DragOverHandler(event, this, 0);">
+		<input type="file" multiple="multiple" onchange="ParseDroppedFile(this)">Drag & drop xslx file
+	</div>
+
+	<button type="button" onclick="GenerateSpreadsheet()" style="margin-bottom:25px">Export</button><br>
+	
 	<textarea id="input"></textarea>
 	<h2>1</h2><div id="1"></div>
 	<h2>2</h2><div id="2"></div>
@@ -15,6 +23,8 @@
 	<div id="nonmatching"></div>
 	
 	<script>
+	var global_buffer = [];
+	
 	let input = document.getElementById("input");
 	input.addEventListener("input", function(e){
 		sortNumbersToColumns(e.target.value);
@@ -27,6 +37,11 @@
 	function sortNumbersToColumns(input_string) {
 		let storage_pattern = [
 			//prefix, suffix, start, end, column, shelf
+			{suffix:"ja", column:1, shelf:15},
+			{suffix:"hx", column:1, shelf:45},
+			{prefix:"aia", column:3, shelf:24},
+			{suffix:"y", end:6500, column:2, shelf:1},
+			{suffix:"y", start:6501, column:2, shelf:99},
 		];
 		
 		let input  = [];
@@ -119,7 +134,88 @@
 				document.getElementById("nonmatching").innerHTML = "";
 			}
 		
+		global_buffer = output;
 		//console.log(output);
+	}
+
+	// functions for importing excel file
+	function DropHandler(event, field) {
+		event.preventDefault();
+		ParseDroppedFile(event.dataTransfer);
+		field.style.backgroundColor = "transparent";
+	}
+	
+	function DragOverHandler(event, field, enable) {
+		event.preventDefault();
+		field.style.backgroundColor = enable ? "coral" : "transparent";
+	}
+	
+	function ParseDroppedFile(input) {
+		readXlsxFile(input.files[0]).then(function(rows) {
+			let text = "";
+			
+			rows.forEach(row => {
+				if (row.length >= 7) {
+					text += row[6] + "\n";
+				}
+			});
+			
+			sortNumbersToColumns(text);
+		});
+	}
+	
+	function GenerateSpreadsheet() {
+		if (global_buffer.length == 0)
+			return;
+		
+		let data = [
+			[
+				{
+					value: 'Column',
+					fontWeight: 'bold'
+				},
+				{
+					value: 'Shelf',
+					fontWeight: 'bold'
+				},
+				{
+					value: 'Number',
+					fontWeight: 'bold'
+				}
+			]
+		];
+		
+		Object.keys(global_buffer).forEach(column => {
+			Object.keys(global_buffer[column]).forEach(shelf => {
+				global_buffer[column][shelf].forEach(registration_number => {
+					data.push([
+						{
+							type: String,
+							value: column
+						},
+						{
+							type: String,
+							value: shelf
+						},
+						{
+							type: String,
+							value: registration_number
+						},
+					]);
+				});
+			});
+		});
+		
+		var today = new Date();
+		var dd    = String(today.getDate()).padStart(2, '0');
+		var mm    = String(today.getMonth() + 1).padStart(2, '0');
+		var hh    = String(today.getHours()).padStart(2, '0');
+		var min   = String(today.getMinutes()).padStart(2, '0');
+		var yyyy  = today.getFullYear();
+
+		writeXlsxFile(data, {
+			fileName: 'lista' + yyyy + '_' + mm + '_' + dd + '-' + hh + '-' + min + '.xlsx'
+		})
 	}
 	</script>
 </body>
