@@ -50,7 +50,7 @@
 
 		<textarea id="input"></textarea>
 		<br>
-		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Po znalezieniu numeru szukaj dalej w pozostałych zakresach</label>
+		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
 		<button type="button" onclick="generate_spreadsheet(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))" style="margin-bottom:25px">Utwórz plik excel</button>
 		<button type="button" onclick="print_html_table()">Wydrukuj</button>
@@ -108,7 +108,8 @@
 	A16: HN,HP,0-399HR, 
 	A31: 400HR, HS, 0-799HT
 	A1: 800HT,HU,HV,0-500HW
-	A15: 501HW,HY,JA,JC
+	A15: 501HW,HY,JA
+	A45: JC
 	A33: CA,CC,0-890CE 
 	A34: 891CE,CF,CG,0-645CH 
 	A10:646CH,CJ,CK,0-370CL 
@@ -379,12 +380,12 @@
 	36 26
 	37     89
 	38 89
-	39 115
+	39 1
 	40     28
 	41     8
 	42     48
 	43     52
-	44 64
+	44     64
 	45     72
 	46     109
 	47 93
@@ -818,7 +819,38 @@
 			if (!Object.keys(storage.map).includes(name)) {
 				Object.keys(initial_list[name]).sort().forEach(subarray_key => {
 					initial_list[name][subarray_key].forEach(item => {
-						output.columns[name].push(subarray_key+': '+item.text);
+						let subkey_text = subarray_key;
+
+						if (name == 'p') {
+							let parts = subarray_key.split('');
+							if (parts.length == 4) {
+								let column_description = 'od wejścia';
+								let tmp_columns = ['a','b','c','d'];
+								let tmp_column  = tmp_columns.findIndex(x=>x==parts[2]);
+
+								if (tmp_column >= tmp_columns.length/2) {
+									tmp_column = (tmp_columns.length-1) - tmp_column;
+									column_description = 'od ściany';
+								}
+								tmp_column += 1;
+
+								const max_rows = 6;
+								let tmp_row = parseInt(parts[3]);
+								let row_description = 'od góry';
+								if (tmp_row > max_rows/2) {
+									tmp_row = max_rows - tmp_row + 1;
+									row_description = 'od dołu';
+								}
+
+								subkey_text = 
+									'Szafa #' + parts[0] + ', ' + 
+									(parts[1]=='l'?'lewa':'prawa') + ' strona, ' + 
+									'kolumna:' + tmp_column + ' ' + column_description +', '+
+									'rząd:' + tmp_row + ' ' + row_description;
+							}
+						}
+
+						output.columns[name].push(subkey_text+': '+item.text);
 					});
 				});
 				return;
