@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="x-ua-compatible" content="ie=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Storage sorting</title>
+</head>
+
+<body>
+	<textarea id="input"></textarea>
+	<h2>1</h2><div id="1"></div>
+	<h2>2</h2><div id="2"></div>
+	<h2>3</h2><div id="3"></div>
+	<div id="nonmatching"></div>
+	
+	<script>
+	let input = document.getElementById("input");
+	input.addEventListener("input", function(e){
+		sortNumbersToColumns(e.target.value);
+	});
+	
+	document.addEventListener("DOMContentLoaded", function(event) {
+		sortNumbersToColumns(input.value);
+	});
+
+	function sortNumbersToColumns(input_string) {
+		let storage_pattern = [
+			//prefix, suffix, start, end, column, shelf
+		];
+		
+		let input  = [];
+		let output = {
+			"1":{},
+			"2":{},
+			"3":{}
+		};
+		let non_matching = [];
+		
+		function is_numeric(str) {
+			if (typeof str != "string") return false
+			return !isNaN(str) && !isNaN(parseFloat(str))
+		}
+		
+		input_string.split(/\r?\n/).forEach(function(item, index, array) {
+			item = item.replace(/\s/g, '');
+			if (item.length > 0) {
+				let new_item = ["", "", ""];
+				let cut      = item.length;
+				
+				for(let i=0; i<=3 && i<item.length; i++) {
+					//console.log(item[i] + ": " + (is_numeric(item[i])));
+					cut = i;
+					
+					if (is_numeric(item[i]))
+						break;
+				}
+				
+				new_item[0] = item.slice(0,cut);
+				new_item[1] = item.slice(cut);
+				cut         = new_item[1].length;
+				
+				for(let i=new_item[1].length-1; i>=0; i--) {
+					//console.log(new_item[1][i] + ": " + (is_numeric(new_item[1][i])));
+					if (!is_numeric(new_item[1][i]))
+						cut = i;
+				}
+				
+				if (cut != new_item[1].length) {
+					new_item[2] = new_item[1].slice(cut);
+					new_item[1] = new_item[1].slice(0,cut);
+				}
+				
+				input.push(new_item);
+				//console.log(new_item);
+			}
+		});
+		
+		input.forEach((registration_number) => {
+			let matched = false;
+			for(let i=0; i<storage_pattern.length && !matched; i++) {
+				if (
+					(!storage_pattern[i].hasOwnProperty("prefix") || registration_number[0]==storage_pattern[i].prefix)
+					&&
+					(!storage_pattern[i].hasOwnProperty("suffix") || registration_number[2]==storage_pattern[i].suffix)
+					&&
+					(!storage_pattern[i].hasOwnProperty("start") || is_numeric(registration_number[1]) && parseInt(registration_number[1]) >= storage_pattern[i].start)
+					&& 
+					(!storage_pattern[i].hasOwnProperty("end") || is_numeric(registration_number[1]) && parseInt(registration_number[1]) <= storage_pattern[i].end)
+				) {
+					if (!output[storage_pattern[i].column].hasOwnProperty(storage_pattern[i].shelf)) {
+						output[storage_pattern[i].column][storage_pattern[i].shelf] = [];
+					}
+
+					output[storage_pattern[i].column][storage_pattern[i].shelf].push(registration_number.join(""));
+					matched = true;
+				}
+			}
+			
+			if (!matched) {
+				non_matching.push(registration_number.join(""));
+			}
+		});
+		
+		Object.keys(output).forEach(column => {
+			document.getElementById(column).innerHTML = "";
+			
+			Object.keys(output[column]).forEach(shelf => {
+				output[column][shelf].sort();
+				document.getElementById(column).innerHTML += "<b>"+shelf+"</b>: " + output[column][shelf].join(", ") + "<br>";
+			});
+		});
+		
+		if (non_matching.length > 0) {
+			document.getElementById("nonmatching").innerHTML = "<h2>?</h2>" + non_matching.join("<br>");
+		} else 
+			if (document.getElementById("nonmatching").children.length > 0) {
+				document.getElementById("nonmatching").firstChild.remove();
+				document.getElementById("nonmatching").innerHTML = "";
+			}
+		
+		//console.log(output);
+	}
+	</script>
+</body>
+</html>
