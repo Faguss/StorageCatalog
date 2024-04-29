@@ -10,8 +10,9 @@
 </head>
 
 <body>
-	<div style="background-color:gray;min-height:100px;margin-bottom:25px;max-width:200px" id="gs_drop_zone" class="gs_drop_zone" ondrop="DropHandler(event, this);" ondragover="DragOverHandler(event, this, 1);" ondragleave="DragOverHandler(event, this, 0);">
-		<input type="file" multiple="multiple" onchange="ParseDroppedFile(this)">Drag & drop xslx file
+	<div style="border:1px solid brown; max-width:300px; height:150px; margin-bottom:2em; text-align:center; padding-top:1em;" ondrop="DropHandler(event, this);" ondragover="DragOverHandler(event, this, 1);" ondragleave="DragOverHandler(event, this, 0);">
+		Drag & drop xslx file<br><br>
+		<input type="file" multiple="multiple" onchange="ParseDroppedFile(this)">
 	</div>
 
 	<button type="button" onclick="GenerateSpreadsheet()" style="margin-bottom:25px">Export</button><br>
@@ -20,7 +21,7 @@
 	<h2>1</h2><div id="1"></div>
 	<h2>2</h2><div id="2"></div>
 	<h2>3</h2><div id="3"></div>
-	<div id="nonmatching"></div>
+	<h2>non_matching</h2><div id="non_matching"></div>
 	
 	<script>
 	var global_buffer = [];
@@ -48,9 +49,9 @@
 		let output = {
 			"1":{},
 			"2":{},
-			"3":{}
+			"3":{},
+			"non_matching":{},
 		};
-		let non_matching = [];
 		
 		function is_numeric(str) {
 			if (typeof str != "string") return false
@@ -113,10 +114,10 @@
 			}
 			
 			if (!matched) {
-				non_matching.push(registration_number.join(""));
+				output.non_matching.push(registration_number.join(""));
 			}
 		});
-		
+			
 		Object.keys(output).forEach(column => {
 			document.getElementById(column).innerHTML = "";
 			
@@ -125,14 +126,6 @@
 				document.getElementById(column).innerHTML += "<b>"+shelf+"</b>: " + output[column][shelf].join(", ") + "<br>";
 			});
 		});
-		
-		if (non_matching.length > 0) {
-			document.getElementById("nonmatching").innerHTML = "<h2>?</h2>" + non_matching.join("<br>");
-		} else 
-			if (document.getElementById("nonmatching").children.length > 0) {
-				document.getElementById("nonmatching").firstChild.remove();
-				document.getElementById("nonmatching").innerHTML = "";
-			}
 		
 		global_buffer = output;
 		//console.log(output);
@@ -168,43 +161,54 @@
 		if (global_buffer.length == 0)
 			return;
 		
-		let data = [
-			[
-				{
-					value: 'Column',
-					fontWeight: 'bold'
-				},
-				{
-					value: 'Shelf',
-					fontWeight: 'bold'
-				},
-				{
-					value: 'Number',
-					fontWeight: 'bold'
-				}
-			]
-		];
-		
-		Object.keys(global_buffer).forEach(column => {
+		let excel_rows = [[]];
+		let parallel_list = [];
+		let columns = [];
+			
+		Object.keys(global_buffer).forEach(function(column, index, array) {
+			excel_rows[0].push({value:column, fontWeight:'bold'});
+			columns.push({width:column.length + 1});
+			parallel_list.push([]);
+			
 			Object.keys(global_buffer[column]).forEach(shelf => {
 				global_buffer[column][shelf].forEach(registration_number => {
-					data.push([
-						{
-							type: String,
-							value: column
-						},
-						{
-							type: String,
-							value: shelf
-						},
-						{
-							type: String,
-							value: registration_number
-						},
-					]);
+					parallel_list[index].push(shelf+": " + registration_number);
 				});
 			});
 		});
+		
+		let j = 0;
+		let null_count = 0;
+		
+		while(true) {
+			let excel_row = [];
+			
+			for(let i=0; i<parallel_list.length; i++) {
+				let current_value = '';
+				
+				if (parallel_list[i][j]) {
+					current_value = parallel_list[i][j];
+				} else {
+					null_count++;
+				}
+				
+				excel_row.push({type:String, value:current_value});
+				
+				if (current_value.length > columns[i].width) {
+					columns[i].width = current_value.length;
+				}
+			}
+			
+			if (null_count < parallel_list.length) {
+				excel_rows.push(excel_row);
+				null_count = 0;
+				j++;
+			} else {
+				break;
+			}
+		}
+		
+		//console.log(excel_rows);
 		
 		var today = new Date();
 		var dd    = String(today.getDate()).padStart(2, '0');
@@ -213,7 +217,8 @@
 		var min   = String(today.getMinutes()).padStart(2, '0');
 		var yyyy  = today.getFullYear();
 
-		writeXlsxFile(data, {
+		writeXlsxFile(excel_rows, {
+			columns,
 			fileName: 'lista' + yyyy + '_' + mm + '_' + dd + '-' + hh + '-' + min + '.xlsx'
 		})
 	}
