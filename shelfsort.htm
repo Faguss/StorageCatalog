@@ -133,7 +133,7 @@
 	B30: AA 1041K - AA 5030K
 	B32:AA 5031K- AA 9070K
 	B33: AA 9071K - AA 9999K,AA 0001L- AA 3120L
-	B41:AA 901V,001W,001HX,AE*,AJ*,AM*,AN*,A2 2552-A2 5434
+	B41:AA 901V,001W,AE*,AJ*,AM*,AN*,A2 2552-A2 5434
 	B37: AA 3122L-AA 7220L
 	B39:AA 7221L-AA 9999L
 	B43: AA 0002N- AA 1810N
@@ -180,8 +180,8 @@
 	C10 AA 3000Y - AA 6180Y
 	C11 500FU, FV, FW
 	C12 FY, GA, 0-499GC
-	C13 AAA..,AAU..,AAA..
-	C24 AGR..,AKL..-PRZ..
+	C13 AAA*,AAU*,AAA*
+	C24 AGR*,AHA*,AK..-PRZ..
 	C23 PS..-ZZZ..
 
 	C14 500GC, GE, 0-499GF
@@ -200,7 +200,75 @@
 	C25 FX, GX, 0-600HX
 	C26 AA 001R-999R, AA 0-999S, AA 001L, 601HX
 
+	P1PD1 AAB 001S-AAB 22901
+	P1PA2 AAB 2304-AAB 5561
+	P1PB2 AAB 5569-AAB 8835
+	P1PC2 AAB 8837-AAB 9996,AAH 0004-AAH 1635
+	P1PD2 AAH 1376-AAH 4610
+	P1PA3 AAH 4615-AAH 8024
+	P1PB3 AAH 8034-AAH 9999
+	P1PC3 AAK 0013-AAK 0451
+	P1PD3 AAK 4056-AAK 7573
+	P1PA4 AAK 7582-AAK 9998, AAM 0002-AAM 1241
+	P1PB4 AAM 1271-AAM 4613
+	P1PC4 AAM 4614-AAM 7854
+	P1PD4 AAM 7858-AAM 9995,AAO 0004-AAO 1453
+	P1PA5 AAO 1460-AAO-4879
+	P1PB5 AAO 4890-AAO-8523
+	P1PC5 AAO 8662-AAO-9978,AAZ 0013-AAZ 1519
+	P1PD5 AAZ 1523-AAZ 3366, AA 001C-AA 299C
+	P1PA6 AA 301C-AA 955C
+	P1PB6 AA 956C-AA 998C,AA 001F-AA 668F
+	P1PC6 AA 669F-AA 999F, AA 001A-AA640A
+	P1PD6 AA 642A-AA 997A, AA 001E-AA 640E
+
+	P2LD1 AA 644E-AA 998E,AA 0016-AA 5976
+	P2LC1 AA 6026-AA 9966,AA 001H-AA 508H
+	P2LB1 AA 511H-AA 998H,AA 004J-AA 386J
+	P2LA1 AA 388J-AA 997J,AA 006K-AA 195K
+	P2LD2 AA 196K-AA 994K,AA 001M-AA 052M
+	P2LC2 AA 053M-AA 857M
+	P2LB2 AA 858M-AA 998M,AA 003N-AA 627N
+	P2LA2 AA 628N-AA 003P,AA 003P-AA 398P
+	P2LD3 AA 400P-AA 999P,AAM 0006-AAM 0917
+	P2LC3 AAM 0932-ATM 5269
+	P2LB3 ATM 5274-ATM 9904
+	P2LA3 ATM 9928-ATM 9999,ATN 9902-ATN 9992, ATO 0007-ATO 3479
+	P2LD4 ATO 3480-ATO 6858
+	P2LD5 ATO 6868-ATO 9997, ATZ 0008-ATZ 9997
+	P2LB4 ATZ 0303-ATZ 3526
+	P2LA4 ATZ 3532-ATZ 6829
+	P2LD5 ATZ 6832-ATZ 9836
+	P2LC5 ATZ 9839-ATZ 9995, ATV 0002-ATV 2626
+	P2LB5 ATV 2629-ATV 9899
+
+	P2PA1 ATO 0017-ATO 9989,ATS 0038-ATS 3476
+	P2PB1 ATS 3482-ATS 9992,ATV 0027-ATV 3192
+	P2PC1 ATV 3193-ATV 9995,ATX 0051-ATX 3130
+	P2PD1 ATX 3145-ATX 9994,ATB 0031-ATB 1600
+	P2PA2 ATB 1601-ATB 9999,ATC 0008-ATC 0398
+	P2PB2 ATC 0434-ATC 6847
+	P2PC2 ATC 6851-ATC 9989,ATG 0002-ATG 3667
+	P2PD2 ATG 3669-ATG 9997,ATH 0011-ATH 0623
+	P2PA3 ATH 0624-ATH 6260
+	P2PB3 ATH 6262-ATH 9996,ATK 0009-ATK 2236
+	P2PC3 ATK 2299-ATK 9090
+	P2PD3 ATK 9095-ATK 9978,AA 0001A-AA 0699A
+	P2PA4 AA 0702A-AA 1413A
+	P2PB4 AA 1415A-AA 2089A
+	P2PC4 AA 2090A-AA 2703A
+	P2PD4 AA 2704A-AA 3477A
+	P2PA5 AA 3479A-AA 4274A
+	P2PB5 AA 4277A-AA 4906A
+	P2PC5 AA 4907A-AA 5694A
+	P2PD5 AA 5696A-AA 6463A
+	P2PA6 AA 6465A-AA 7223A
+	P2PB6 AA 7224A-AA 7781A
+	P2PC6 AA 7782A-AA 8414A
+	P2PD6 AA 8416A-AA 9093A
+
 	A42 length:4
+	A42 startswith:letter|digit|letter
 	`;
 
 	var raw_storage_map = `
@@ -343,8 +411,7 @@
 	`;
 
 	var test = `
-	B13: AA 9002E,AA 0-3339F
-	B28: AA 7111J, AA 0-AA 1040K
+	A42: startswith:letter|digit|letter
 	`;`
 	C6 AGR..-PRZ..
 	C2 AA 0001U - AA 3319U
@@ -392,11 +459,12 @@
 
 			let column = 0;
 			let shelf = 0;
-			let identifier_items = line.substr(0,i).match(/[a-zA-Z]+|[0-9]+/g);
-			if (identifier_items.length >= 2) {
-				column = identifier_items[0];
-				shelf = parseInt(identifier_items[1]);
-			}
+
+			let j = 0;
+			while(j<i && !is_numeric(line[j])) j++;
+
+			column = line.substring(0,j);
+			shelf = line.substring(j,i);
 			
 			if (!output.columns.includes(column)) {
 				output.columns.push(column);
@@ -406,14 +474,12 @@
 			let tokens = line.substr(i).split(/,/);
 			
 			function parse_range(input) {
-				let output = {
-					prefix:DEFAULT_PREFIX,
-					number:'',
-					suffix:'',
-				};
+				let output = {};
 
 				if (input.substring(input.length-1) == '*') {
 					output.prefix = input.substring(0,input.length-1);
+					output.number = '';
+					output.suffix = '';
 					return output;
 				}
 
@@ -427,9 +493,26 @@
 					output.length = parseInt(input.substring(length_keyword.length));
 					return output;
 				}
+
+				const startswith_keyword = 'startswith:';
+				if (input.substring(0,startswith_keyword.length) == startswith_keyword) {
+					let total = '';
+					input.substring(startswith_keyword.length).toLowerCase().split('|').forEach(item => {
+						if (item == 'letter') {
+							total += '[a-zA-Z]';
+						} else
+							if (item == 'digit') {
+								total += '[0-9]';
+							}
+					});
+					output.regex = new RegExp('^' + total + '.+$', 'g');
+					return output;
+				}
 				
 				let parts = input.trim().split(/\s/);
 				output.prefix = parts.length>1 ? parts[0] : DEFAULT_PREFIX;
+				output.number = '';
+				output.suffix = '';
 
 				let right = parts.length>1 ? parts[1] : parts[0];
 
@@ -453,33 +536,34 @@
 
 				let pattern = {
 					column: column,
-					shelf: shelf,
-					suffix: range.length>1 ? range[1].suffix : range[0].suffix
+					shelf: shelf,					
 				};
+				let default_properties = pattern.length;
 
-				let last = range.length>1 ? 1 : 0;
-				if (range[last].prefix != DEFAULT_PREFIX) {
+				if (range[0].hasOwnProperty('number')) {
+					let last = range.length>1 ? 1 : 0;
 					pattern.prefix = range[last].prefix;
-				}
-				
-				// input is two numbers (e.g 0-100)
-				if (range.length > 1 && range[1].number!='' && range[0].number!='') {
-					pattern.start = parseInt(range[0].number);
-					pattern.end = parseInt(range[1].number);
-					pattern.digits = range[1].number.length;
-				} else
-					// input is one number (e.g 100)
-					if (range.length > 0 && range[0].number!='') {
+					pattern.suffix = range[last].suffix;
+
+					// input is two numbers (e.g 0-100)
+					if (range.length > 1 && range[1].number!='' && range[0].number!='') {
 						pattern.start = parseInt(range[0].number);
-						pattern.end = pad_number(pattern.suffix);
-						pattern.digits = range[0].number.length;
+						pattern.end = parseInt(range[1].number);
+						pattern.digits = range[1].number.length;
 					} else
-						// input is letters (e.g AA)
-						if (pattern.suffix != '') {
-							pattern.start = 0;
+						// input is one number (e.g 100)
+						if (range.length > 0 && range[0].number!='') {
+							pattern.start = parseInt(range[0].number);
 							pattern.end = pad_number(pattern.suffix);
-							pattern.digits = pattern.end.toString().length;
-						}
+							pattern.digits = range[0].number.length;
+						} else
+							// input is letters (e.g AA)
+							if (pattern.suffix != '') {
+								pattern.start = 0;
+								pattern.end = pad_number(pattern.suffix);
+								pattern.digits = pattern.end.toString().length;
+							}
+				}
 
 				if (range.length > 0 && range[0].hasOwnProperty("prefix_range")) {
 					pattern.prefix_start = range[0].prefix_range;
@@ -492,7 +576,11 @@
 
 				if (range[0].hasOwnProperty("length")) {
 					pattern.length = range[0].length;
-				}				
+				}
+				
+				if (range[0].hasOwnProperty("regex")) {
+					pattern.regex = range[0].regex;
+				}	
 
 				output.pattern.push(pattern);
 			});
@@ -604,27 +692,22 @@
 					prefix = current.substring(0,storage.pattern[i].prefix.length);
 					number = get_number(current,storage.pattern[i].prefix);
 				}
-				
+
 				if (
 					(!storage.pattern[i].hasOwnProperty('length') ||
 					current.length == storage.pattern[i].length)
 					&&
-					(
-						(
-							storage.pattern[i].hasOwnProperty('prefix_start') && 
-							storage.pattern[i].hasOwnProperty('prefix_end') && 
-							compare_letters(storage.pattern[i].prefix_start,parts[0],storage.pattern[i].prefix_end)
-						)
-						||
-						(
-							(
-								(!storage.pattern[i].hasOwnProperty('prefix') && prefix==DEFAULT_PREFIX) || 
-								prefix == storage.pattern[i].prefix
-							)
-							&&
-							suffix == storage.pattern[i].suffix
-						)
-					)
+					(!storage.pattern[i].hasOwnProperty('regex') ||
+					storage.pattern[i].regex.test(current))
+					&&
+					((!storage.pattern[i].hasOwnProperty('prefix_start') && !storage.pattern[i].hasOwnProperty('prefix_end')) || 
+					compare_letters(storage.pattern[i].prefix_start,parts[0],storage.pattern[i].prefix_end))
+					&&
+					(!storage.pattern[i].hasOwnProperty('prefix') ||
+					prefix == storage.pattern[i].prefix)
+					&&
+					(!storage.pattern[i].hasOwnProperty('suffix') ||
+					suffix == storage.pattern[i].suffix)
 					&&
 					((!storage.pattern[i].hasOwnProperty('start') || !storage.pattern[i].hasOwnProperty('end') || !storage.pattern[i].hasOwnProperty('digits')) ||
 					parseInt(number) >= storage.pattern[i].start && parseInt(number)<=storage.pattern[i].end && number.length==storage.pattern[i].digits)
@@ -646,12 +729,20 @@
 		});
 
 		storage.columns.forEach(name => {
+			if (!Object.keys(storage.map).includes(name)) {
+				Object.keys(initial_list[name]).forEach(subarray_key => {
+					initial_list[name][subarray_key].forEach(item => {
+						output.columns[name].push(subarray_key+': '+item);
+					});
+				});
+				return;
+			}
+
 			let bigger_half = [];
 			let smaller_half = [];
 
 			Object.keys(initial_list[name]).forEach(subarray_key => {
 				initial_list[name][subarray_key].sort();
-				subarray_key = parseInt(subarray_key);
 
 				if (
 					(storage.map[name].entry_is_up && storage.map[name][subarray_key] >= storage.map[name].entry_point) 
