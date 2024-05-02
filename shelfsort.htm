@@ -467,7 +467,7 @@
 	P7LC6 AA 5566J-AA 9949J,AA 0060K-AA 2825K
 	P7LB6 AA 2832K-AA 9417K
 	P7LA6 AA 9430K-AA 9987K,AA 0030L-AA 5775L
-	
+
 	P7PA1 AA 5776L-AA 9996L, AA 0034N-AA 2881N
 	P7PB1 AA 2933N-AA 9069N
 	P7PC1 AA 9139N-AA 9981N,AA 0049P-AA 5222P
@@ -510,7 +510,10 @@
 	P8LC5 AA 859ES-AA 995ES,AA 003ET-AA 997ET,AA 048EU-AA 487EU,AA 505EU-AA 998EU,AA 004EV-AA 993EV,AA 001EW-AA 998EW,AA 062EX-AA 554EX
 	P8LB5 AA 002EY-AA 993EY,AA 029FA-AA 980FA,AA 001FC-AA 997FC,AA 008FE-AA 966FE,AA 003FF-AA 966FF
 	P8LA5 AA 027FG-AA 923FG,AA 007FH-AA 997FH,AA 004FJ-AA 986FJ,AA 006FK-AA 990FK,AA 019FL-AA 920FL,AA 012FM-AA 971FM,AA 014FN-AA 999FN,AA 061FP,AA 016FR-AA 981FR
-	P8LD6 AA 026FS-AA 856FS,AA 014FT-AA 985FT,AA 118FU-AA 926FU,AA 384FV-AA 669FV,AA 394A-AA 958A,AA 036C-AA 981C,AA 113E-AA 985E
+	P8LD6 AA 026FS-AA 856FS,AA 014FT-AA 985FT,AA 118FU-AA 926FU,AA 384FV-AA 669FV,AA 394A-AA 958A,AA 036C-AA 981C,AA 113E-AA 985E,AA 006F-AA 935F,AA 026G-AA 998G,AA 100J-AA 967J,AA 004K-AA 981K,AA 017L-AA 993L,AA 010M-AA 971M,AA 004N-AA 997N,AA 002P-AA 412P
+	P8LC6 AA 420P-AA 998P,AA 039R-AA 992R,AA 006S-AA 388S,AA 002U-AA 644U,AA 0178-AA 3075
+	P8LB6 AA 3419-AA 4283,AAA 0890-AAA 8214,AAB 0482-AAB 9513,AAH 0263-AAH 8760,AAJ 1046-AAJ 2943,AAK 0820-AAK 8977,AAM 0255-AAM 9802,AAO 0625-AAO 9550,AAZ 0045-AAZ 3250,AKA 0178-AKA 3598,AKH 2126-AKH 2126,AKN 2225-AKN 2225,AKO 6479-AKO 6379,AKP 012X-AKP 012X,AKX 0385-AKX 4499,ATG 7569-ATG 7569,ATH 5681-ATH 8220,ATI 6622-ATI 6622,ATJ 2264-ATJ 2264,ATK 3713-ATK 3713,ATO 0504-ATO 9968,ATT 6476-ATT 6476,ATV 0024-ATV 9793,ATX 1196-ATX 8964,A 009-A 499,A1 62-A1 62,A1 H3-A1 H3,A2 C8-A2 C8,A2 G9-A2 G9,A3 G1-A3 G1,A4 H5-A4 H5
+	P8LA6 A6 F9-A9 G3,AA 40C-AA 93C,AA 07E-AA 75E,AA 31F-AA 47F,A2 2552-A2 5500
 	`;
 
 	var raw_storage_map = `
@@ -547,7 +550,7 @@
 	28 54
 	29     81
 	30     85
-	31 100
+	31     36
 	32     40
 	33 85
 	34     105
@@ -561,7 +564,7 @@
 	42     48
 	43     52
 	44     64
-	45 1
+	45     1
 	46     109
 	47 93
 	48     68
@@ -1013,6 +1016,50 @@
 				output.total_count++;
 			}
 		});
+        
+        function P_storage_format_relative_shelf_location(input) {
+            if (input.length < 4) return '';
+            const columns = ['a','b','c','d'];
+            let column = columns.findIndex(x => x==input[2].toLowerCase());
+            let column_description = 'od wejścia';
+
+            if (column >= columns.length/2) {
+                column = (columns.length-1) - column;
+                column_description = 'od ściany';
+            }
+            column += 1;
+
+            const max_rows = 6;
+            let row = parseInt(input[3]);
+            let row_description = 'od góry';
+            if (row > max_rows/2) {
+                row = max_rows - row + 1;
+                row_description = 'od dołu';
+            }
+
+            return 'Szafa #' + input[0] + ', ' + 
+                (input[1].toUpperCase()=='L'?'lewa':'prawa') + ' strona, ' + 
+                'kolumna:' + column + ' ' + column_description +', '+
+                'rząd:' + row + ' ' + row_description;
+        }
+        
+        function P_storage_relative_shelf_location_to_absolute(input) {
+            if (input.length < 4) return 0;
+            const number_of_shelves = 24;
+            const columns = ['a','b','c','d'];
+            const first_shelf = 1;
+
+            let cabinet = parseInt(input[0]);
+            let side = input[1];
+            let column = columns.findIndex(x => x==input[2].toLowerCase());
+            let row = parseInt(input[3]);
+
+            if (side == 'L')
+                column = columns.length - 1 - column;
+
+            let aisle = cabinet * 2 - (side=='L'?1:0);
+            return first_shelf + (aisle-1)*number_of_shelves + (row-1)*columns.length + column;
+        }
 
 		storage.columns.forEach(name => {
 			if (!Object.keys(storage.map).includes(name)) {
@@ -1021,32 +1068,9 @@
 						let subkey_text = subarray_key;
 
 						if (name == 'p') {
-							let parts = subarray_key.split('');
-							if (parts.length == 4) {
-								let column_description = 'od wejścia';
-								let tmp_columns = ['a','b','c','d'];
-								let tmp_column  = tmp_columns.findIndex(x=>x==parts[2]);
-
-								if (tmp_column >= tmp_columns.length/2) {
-									tmp_column = (tmp_columns.length-1) - tmp_column;
-									column_description = 'od ściany';
-								}
-								tmp_column += 1;
-
-								const max_rows = 6;
-								let tmp_row = parseInt(parts[3]);
-								let row_description = 'od góry';
-								if (tmp_row > max_rows/2) {
-									tmp_row = max_rows - tmp_row + 1;
-									row_description = 'od dołu';
-								}
-
-								subkey_text = 
-									'Szafa #' + parts[0] + ', ' + 
-									(parts[1]=='l'?'lewa':'prawa') + ' strona, ' + 
-									'kolumna:' + tmp_column + ' ' + column_description +', '+
-									'rząd:' + tmp_row + ' ' + row_description;
-							}
+                            subkey_text = P_storage_relative_shelf_location_to_absolute(subarray_key);
+                            if (subkey_text > 146)
+                                subkey_text = P_storage_format_relative_shelf_location(subarray_key);
 						}
 
 						output.columns[name].push(subkey_text+': '+item.text);
