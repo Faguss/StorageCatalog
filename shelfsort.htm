@@ -73,7 +73,7 @@
 	const DEFAULT_PREFIX = 'aa';
 	const MAX_DIGITS = 5;
 
-	var column_names = {
+	const STORAGE_SECTION_NAMES = {
 		"a": "Szafa #1",
 		"b": "Szafa #2",
 		"c": "Szafa #3",
@@ -705,7 +705,7 @@
 
 		let output = {
 			pattern: [],
-			columns: [],
+			sections: [],
 			tags: [],
 		};
 		let tag = '';
@@ -727,17 +727,17 @@
 			let i = 0;
 			while(i<line.length && !is_separator(line[i])) i++;
 
-			let column = 0;
+			let section = 0;
 			let shelf = 0;
 
 			let j = 0;
 			while(j<i && !is_numeric(line[j])) j++;
 
-			column = line.substring(0,j);
+			section = line.substring(0,j);
 			shelf = line.substring(j,i);
 			
-			if (!output.columns.includes(column)) {
-				output.columns.push(column);
+			if (!output.sections.includes(section)) {
+				output.sections.push(section);
 			}
 
 			while(i<line.length && is_separator(line[i])) i++;
@@ -803,7 +803,7 @@
 				let range = token.split(/-/).map((x) => parse_range(x));
 
 				let pattern = {
-					column: column,
+					section: section,
 					shelf: shelf,					
 				};
 
@@ -871,7 +871,7 @@
 
 	function raw_storage_map_to_array(input_text) {
 		let output = {};
-		let column = '';
+		let section = '';
 		let lower = 0;
 		let higher = 0;
 		const entry_keyword = 'entry:';
@@ -884,11 +884,11 @@
 			let colon = line.indexOf(':');
 			if (colon >= 0) {
 				if (line.substring(0,entry_keyword.length) == entry_keyword) {
-					output[column].entry_point = parseInt(line.substring(entry_keyword.length));
+					output[section].entry_point = parseInt(line.substring(entry_keyword.length));
 				} else {
-					if (Object.keys(column_names).includes(line.substring(0,colon))) {
-						column = line.substring(0,colon);
-						output[column] = {entry_point:0, entry_is_up:false};
+					if (Object.keys(STORAGE_SECTION_NAMES).includes(line.substring(0,colon))) {
+						section = line.substring(0,colon);
+						output[section] = {entry_point:0, entry_is_up:false};
 						lower = 0;
 						higher = 0;
 					}
@@ -898,15 +898,15 @@
 				if (tokens.length >= 2 && is_numeric(tokens[0]) && is_numeric(tokens[1])) {
 					let shelf = parseInt(tokens[0]);
 					let position = parseInt(tokens[1]);
-					output[column][shelf] = position;
+					output[section][shelf] = position;
 
-					if (position >= output[column].entry_point) {
+					if (position >= output[section].entry_point) {
 						higher++;
 					} else {
 						lower++;
 					}
 
-					output[column].entry_is_up = lower > higher;
+					output[section].entry_is_up = lower > higher;
 				}
 			}
 		});
@@ -916,20 +916,20 @@
 
 	function sort_numbers_to_shelves(input_text, storage, continue_search=false) {
 		let output = {
-			columns: {non_matching: []},
+			sections: {non_matching: []},
 			total_count: 0,
-			last_item: {column:"",index:0},
+			last_item: {section:'',index:0},
 		};
 		let initial_list = {
 			last_item: {
-				column: "", 
-				shelf: "", 
-				text:"",
+				section: '', 
+				shelf: '', 
+				text: '',
 			}
 		};
-		storage.columns.forEach(name => {
-			output.columns[name] = []; 
-			initial_list[name]   = [];
+		storage.sections.forEach(section => {
+			output.sections[section] = []; 
+			initial_list[section]    = [];
 		});
 
 		function compare_letters(start, target, end) {
@@ -1022,15 +1022,15 @@
 					((!storage.pattern[i].hasOwnProperty('tag') && tags.length==0) ||
 					tags.includes(storage.pattern[i].tag))
 				) {
-					if (!initial_list[storage.pattern[i].column].hasOwnProperty(storage.pattern[i].shelf)) {
-						initial_list[storage.pattern[i].column][storage.pattern[i].shelf] = [];
+					if (!initial_list[storage.pattern[i].section].hasOwnProperty(storage.pattern[i].shelf)) {
+						initial_list[storage.pattern[i].section][storage.pattern[i].shelf] = [];
 					}
 
-					initial_list[storage.pattern[i].column][storage.pattern[i].shelf].push({ruleid:i,text:line});
+					initial_list[storage.pattern[i].section][storage.pattern[i].shelf].push({ruleid:i,text:line});
 					initial_list.last_item = {
-						column: storage.pattern[i].column, 
+						section: storage.pattern[i].section, 
 						shelf: storage.pattern[i].shelf, 
-						text:line
+						text: line
 					};
 					output.total_count++;
 					matched = true;
@@ -1038,12 +1038,12 @@
 			}
 			
 			if (!matched) {
-				initial_list.last_item.column = '';
-				initial_list.last_item.shelf  = '';
-				initial_list.last_item.text   = '';
-				output.last_item.column = 'non_matching';
-				output.last_item.index  = output.columns.non_matching.length;
-				output.columns.non_matching.push(line);
+				initial_list.last_item.section = '';
+				initial_list.last_item.shelf   = '';
+				initial_list.last_item.text    = '';
+				output.last_item.section = 'non_matching';
+				output.last_item.index   = output.sections.non_matching.length;
+				output.sections.non_matching.push(line);
 				output.total_count++;
 			}
 		});
@@ -1115,12 +1115,12 @@
 			return first_shelf + aisle*number_of_shelves + column*number_of_rows + (row-1);
 		}
 
-		storage.columns.forEach(name => {
-			if (!Object.keys(storage.map).includes(name)) {
-				let keys = Object.keys(initial_list[name]);
+		storage.sections.forEach(section => {
+			if (!Object.keys(storage.map).includes(section)) {
+				let shelves = Object.keys(initial_list[section]);
 
-				if (name == 'p') {
-					keys.sort(function(x,y) {
+				if (section == 'p') {
+					shelves.sort(function(x,y) {
 						let a = P_storage_relative_shelf_location_to_absolute_sort(x);
 						let b = P_storage_relative_shelf_location_to_absolute_sort(y);
 						if (a < b) return -1;
@@ -1128,34 +1128,29 @@
 						return 0;
 					})
 				} else {
-					keys.sort();
+					shelves.sort();
 				}
 				
-				keys.forEach(subarray_key => {
-					initial_list[name][subarray_key].forEach(item => {
-						let subkey_text = subarray_key;
+				shelves.forEach(shelf => {
+					initial_list[section][shelf].forEach(item => {
+						let shelf_name = section=='p' ? P_storage_relative_shelf_location_to_absolute(shelf) : shelf;
 
-						if (name == 'p') {
-                            subkey_text = P_storage_relative_shelf_location_to_absolute(subarray_key);
-                            if (subkey_text > 216)
-                                subkey_text = P_storage_format_relative_shelf_location(subarray_key);
+						if (initial_list.last_item.section==section && initial_list.last_item.shelf==shelf && initial_list.last_item.text==item.text) {
+							output.last_item.section = section;
+							output.last_item.index = output.sections[section].length;
 						}
 
-						if (initial_list.last_item.column==name && initial_list.last_item.shelf==subarray_key && initial_list.last_item.text==item.text) {
-							output.last_item.column = name;
-							output.last_item.index = output.columns[name].length;
-						}
-						output.columns[name].push(subkey_text+': '+item.text);
+						output.sections[section].push(shelf_name+': '+item.text);
 					});
 				});
 				return;
 			}
 
-			let bigger_half = [];
+			let bigger_half  = [];
 			let smaller_half = [];
 
-			Object.keys(initial_list[name]).forEach(subarray_key => {
-				initial_list[name][subarray_key].sort(function(x,y) {
+			Object.keys(initial_list[section]).forEach(shelf => {
+				initial_list[section][shelf].sort(function(x,y) {
 					if (x.ruleid < y.ruleid) return -1;
 					if (x.ruleid > y.ruleid) return 1;
 					if (x.text < y.text) return -1;
@@ -1164,38 +1159,42 @@
 				});
 
 				if (
-					(storage.map[name].entry_is_up && storage.map[name][subarray_key] >= storage.map[name].entry_point) 
+					(storage.map[section].entry_is_up && storage.map[section][shelf] >= storage.map[section].entry_point) 
 					|| 
-					(!storage.map[name].entry_is_up && storage.map[name][subarray_key] < storage.map[name].entry_point)
+					(!storage.map[section].entry_is_up && storage.map[section][shelf] < storage.map[section].entry_point)
 				) {
-					smaller_half.push(subarray_key);
+					smaller_half.push(shelf);
 				} else {
-					bigger_half.push(subarray_key);
+					bigger_half.push(shelf);
 				}
 			});
 
 			// todo: test when entry_is_up is negative
 			// todo: need to run more simulations in order to asses where we should start
 			bigger_half.sort(function(x,y) {
-				if (storage.map[name][x] < storage.map[name][y]) return 1;
-				if (storage.map[name][x] > storage.map[name][y]) return -1;
+				x = parseInt(x);
+				y = parseInt(y);
+				if (storage.map[section][x] < storage.map[section][y]) return 1;
+				if (storage.map[section][x] > storage.map[section][y]) return -1;
 				return 0;
 			});
 
 			smaller_half.sort(function(x,y) {
-				if (storage.map[name][x] < storage.map[name][y]) return 1;
-				if (storage.map[name][x] > storage.map[name][y]) return -1;
+				x = parseInt(x);
+				y = parseInt(y);
+				if (storage.map[section][x] < storage.map[section][y]) return 1;
+				if (storage.map[section][x] > storage.map[section][y]) return -1;
 				return 0;
 			});
 			smaller_half.push(...bigger_half);
 
-			smaller_half.forEach(key => {
-				initial_list[name][key].forEach(item => {
-					if (initial_list.last_item.column==name && initial_list.last_item.shelf==key && initial_list.last_item.text==item.text) {
-						output.last_item.column = name;
-						output.last_item.index = output.columns[name].length;
+			smaller_half.forEach(shelf => {
+				initial_list[section][shelf].forEach(item => {
+					if (initial_list.last_item.section==section && initial_list.last_item.shelf==shelf && initial_list.last_item.text==item.text) {
+						output.last_item.section = section;
+						output.last_item.index   = output.sections[section].length;
 					}
-					output.columns[name].push(key+': '+item.text);
+					output.sections[section].push(shelf+': '+item.text);
 				})
 			});
 		});
@@ -1250,40 +1249,40 @@
 			return '';
 		}
 		
-		let key = [];
-		Object.keys(column_names).forEach(column_name => {
-			if (sorted_numbers.columns.hasOwnProperty(column_name) && sorted_numbers.columns[column_name].length > 0) {
-				key.push(column_name);
+		let sections_with_items = [];
+		Object.keys(STORAGE_SECTION_NAMES).forEach(section => {
+			if (sorted_numbers.sections.hasOwnProperty(section) && sorted_numbers.sections[section].length > 0) {
+				sections_with_items.push(section);
 			}
 		});
 
-		let thead = '';
-		let highest_count = 0;
+		let html_head = '';
+		let item_count_in_largest_section = 0;
 
-		key.forEach(name => {
-			thead += '<th>' + column_names[name] + '</th>';
+		sections_with_items.forEach(section => {
+			html_head += '<th>' + STORAGE_SECTION_NAMES[section] + '</th>';
 			
-			if (sorted_numbers.columns[name].length > highest_count) {
-				highest_count = sorted_numbers.columns[name].length;
+			if (sorted_numbers.sections[section].length > item_count_in_largest_section) {
+				item_count_in_largest_section = sorted_numbers.sections[section].length;
 			}
 		});
 
-		let j = 0;
-		let rows = '';
+		let html_rows = '';
 		
-		for(let j=0; j<highest_count; j++) {
-			let row = '';
+		for(let row=0; row<item_count_in_largest_section; row++) {
+			let html_row = '';
 
-			for(let i=0; i<key.length; i++) {
-				let current_value = (sorted_numbers.columns[key[i]] && sorted_numbers.columns[key[i]][j] ? sorted_numbers.columns[key[i]][j] : '');
-				let is_last = sorted_numbers.last_item.column == key[i] && sorted_numbers.last_item.index == j;
-				row += '<td '+ (is_last?'class=\'color_flash\'':'') +'>' + current_value + '</td>';
-			}
+			sections_with_items.forEach(section => {
+				let current_value = (sorted_numbers.sections[section] && sorted_numbers.sections[section][row] ? sorted_numbers.sections[section][row] : '');
+				let is_last       = sorted_numbers.last_item.section == section && sorted_numbers.last_item.index == row;
+
+				html_row += '<td '+ (is_last?'class=\'color_flash\'':'') +'>' + current_value + '</td>';
+			});
 			
-			rows += '<tr>' + row + '</tr>';
+			html_rows += '<tr>' + html_row + '</tr>';
 		}
 
-		return '<table><thead><tr>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>';
+		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody></table>';
 	}
 
 	function generate_spreadsheet(sorted_numbers) {
@@ -1292,51 +1291,52 @@
 			return;
 		}
 
-		let key = [];
-		Object.keys(column_names).forEach(column_name => {
-			if (sorted_numbers.columns.hasOwnProperty(column_name) && sorted_numbers.columns[column_name].length > 0) {
-				key.push(column_name);
+		let sections_with_items = [];
+		Object.keys(STORAGE_SECTION_NAMES).forEach(section => {
+			if (sorted_numbers.sections.hasOwnProperty(section) && sorted_numbers.sections[section].length > 0) {
+				sections_with_items.push(section);
 			}
 		});
 
 		let excel_rows = [[]];
 		let columns = [];
-		let highest_count = 0;
+		let item_count_in_largest_section = 0;
 		const min_width = 7;
 
-		key.forEach(name => {
+		sections_with_items.forEach(section => {
 			excel_rows[0].push({
-				value: column_names[name], 
+				value: STORAGE_SECTION_NAMES[section], 
 				fontWeight: 'bold',
 				align: 'center',
 				backgroundColor: '#afb3b1',
 			});
 
-			let width = name.length + 1;
+			let width = section.length + 1;
 			columns.push({width:width < min_width ? min_width : width});
 
-			if (sorted_numbers.columns[name].length > highest_count) {
-				highest_count = sorted_numbers.columns[name].length;
+			if (sorted_numbers.sections[section].length > item_count_in_largest_section) {
+				item_count_in_largest_section = sorted_numbers.sections[section].length;
 			}
 		});
 		
-		for(let j=0; j<highest_count; j++) {
+		for(let row=0; row<item_count_in_largest_section; row++) {
 			let excel_row = [];
 			
-			for(let i=0; i<key.length; i++) {
-				let current_value = sorted_numbers.columns[key[i]] && sorted_numbers.columns[key[i]][j] ? sorted_numbers.columns[key[i]][j] : '';
+			for(let column=0; column<sections_with_items.length; column++) {
+				let section       = sections_with_items[column];
+				let current_value = sorted_numbers.sections[section] && sorted_numbers.sections[section][row] ? sorted_numbers.sections[section][row] : '';
 				
 				excel_row.push({
 					type: String, 
 					value: current_value,
 				});
 
-				if (j % 2) {
+				if (row % 2) {
 					excel_row[excel_row.length-1].backgroundColor = '#e4e4e4';
 				}
 				
-				if (current_value.length > columns[i].width) {
-					columns[i].width = current_value.length;
+				if (current_value.length > columns[column].width) {
+					columns[column].width = current_value.length;
 				}
 			}
 
