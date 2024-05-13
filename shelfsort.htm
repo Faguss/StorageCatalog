@@ -121,7 +121,7 @@
 	A31: 400HR, HS, 0-799HT
 	A1: 800HT,HU,HV,0-500HW
 	A15: 501HW,HY,JA
-	A45: JC, JE
+	A45: JC
 	A33: CA,CC,0-890CE 
 	A34: 891CE,CF,CG,0-645CH 
 	A10:646CH,CJ,CK,0-370CL 
@@ -176,6 +176,7 @@
 	B38: AX,AY,AA 3889-AA 4611
 	B8: AA 0001-AA 3888
 
+	B34: JE
 	B47: EA,EC
 	B7: EE,0-199EF
 	B23: AA 200EF, EG,EH,0-120EJ
@@ -201,7 +202,7 @@
 	C14 500GC, GE, 0-499GF
 	C15 500GF, GG, GH
 	C16 GJ, GK,0-300GL
-	C17 331GL, GM,0-600GN
+	C17 301GL, GM,0-600GN
 	C18 601GN, GP,0-800GR
 	C19 801GR, GS,GT
 
@@ -616,7 +617,7 @@
 	31 67
 	32     29
 	33 51
-	34 72
+	34 71
 	35     89
 	36 55
 	37 93
@@ -1123,9 +1124,7 @@
 					shelves.sort(function(x,y) {
 						let a = P_storage_relative_shelf_location_to_absolute_sort(x);
 						let b = P_storage_relative_shelf_location_to_absolute_sort(y);
-						if (a < b) return -1;
-						if (a > b) return 1;
-						return 0;
+						return a==b ? 0 : (a<b ? -1 : 1);
 					})
 				} else {
 					shelves.sort();
@@ -1146,9 +1145,7 @@
 				return;
 			}
 
-			let bigger_half  = [];
-			let smaller_half = [];
-
+			// Sort items within the shelves
 			Object.keys(initial_list[section]).forEach(shelf => {
 				initial_list[section][shelf].sort(function(x,y) {
 					if (x.ruleid < y.ruleid) return -1;
@@ -1157,21 +1154,11 @@
 					if (x.text > y.text) return 1;
 					return 0;
 				});
-
-				if (
-					(storage.map[section].entry_is_up && storage.map[section][shelf] >= storage.map[section].entry_point) 
-					|| 
-					(!storage.map[section].entry_is_up && storage.map[section][shelf] < storage.map[section].entry_point)
-				) {
-					smaller_half.push(shelf);
-				} else {
-					bigger_half.push(shelf);
-				}
 			});
 
-			// todo: test when entry_is_up is negative
-			// todo: need to run more simulations in order to asses where we should start
-			bigger_half.sort(function(x,y) {
+			// The optimal path is to go from the top shelf to the bottom shelf (assuming entry point is closer to the top)
+			// Shelf location is taken from the predefined storage map
+			let shelves_sorted = Object.keys(initial_list[section]).sort(function(x,y) {
 				x = parseInt(x);
 				y = parseInt(y);
 				if (storage.map[section][x] < storage.map[section][y]) return 1;
@@ -1179,22 +1166,19 @@
 				return 0;
 			});
 
-			smaller_half.sort(function(x,y) {
-				x = parseInt(x);
-				y = parseInt(y);
-				if (storage.map[section][x] < storage.map[section][y]) return 1;
-				if (storage.map[section][x] > storage.map[section][y]) return -1;
-				return 0;
-			});
-			smaller_half.push(...bigger_half);
-
-			smaller_half.forEach(shelf => {
+			if (!storage.map[section].entry_is_up) {
+				shelves_sorted.reverse();
+			}
+			
+			shelves_sorted.forEach(shelf => {
 				initial_list[section][shelf].forEach(item => {
 					if (initial_list.last_item.section==section && initial_list.last_item.shelf==shelf && initial_list.last_item.text==item.text) {
 						output.last_item.section = section;
 						output.last_item.index   = output.sections[section].length;
 					}
-					output.sections[section].push(shelf+': '+item.text);
+
+					let shelf_name = is_numeric(shelf) && parseInt(shelf)<10 ? shelf.padStart(2,'0') : shelf;
+					output.sections[section].push(shelf_name+': '+item.text);
 				})
 			});
 		});

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+    <script>
+        class Lift_Template {
+            shelves_all = [];
+            entry_point = '';
+            total_travel_distance = 0;
+            lift_position_current = '';
+            combinations = [];
+
+            constructor(places, entry_point) {
+                this.shelves_all = places;
+                this.entry_point = entry_point;
+            }
+
+            lift_travel_to(destination) {
+                let start_index = this.shelves_all.findIndex((x) => x==this.lift_position_current);
+                let end_index = this.shelves_all.findIndex((x) => x==destination);
+                let distance = Math.abs(end_index - start_index);
+                this.total_travel_distance += distance;
+                //console.log('from:'+this.lift_position_current+' to:'+destination+' dist:'+distance+ ' sum:'+this.total_travel_distance);
+                this.lift_position_current = destination;
+            }
+
+            run_simulation(orders, initial_pos='') {
+                let results = [];
+
+                orders.forEach(order => {
+                    this.total_travel_distance = 0;
+                    this.lift_position_current = initial_pos.length>0 ? initial_pos : this.entry_point;
+                    let loaded = '';
+
+                    order.forEach(ordered_item => {
+                        if (loaded.length > 0) {
+                            this.lift_travel_to(loaded);
+                        }
+                        this.lift_travel_to(ordered_item);
+                        loaded = ordered_item;
+                        this.lift_travel_to(this.entry_point);
+                    });
+
+                    //lift_travel_to(loaded);  //optionally have the lift come back at the end
+                    //console.log(order.join(' ') + ': ' + this.total_travel_distance);
+                    results.push({
+                        distance: this.total_travel_distance, 
+                        path: order.join(' ')
+                    });
+                });
+
+                results.sort(function(a,b) {
+                    return a.distance==b.distance ? 0 : (a.distance>b.distance ? 1 : -1);
+                });
+
+                return results;
+            }
+
+            simulate_combinations_starting_from(starting_points=[]) {
+                console.log('Storage consists of: ' + this.shelves_all.join(' ') + '. Entry point is: '+this.entry_point);
+                console.log('Lift has to visit '+this.combinations[0].join(' '));
+
+                starting_points.forEach(current_starting_point => {
+                    let results = this.run_simulation(this.combinations, current_starting_point);
+                    console.log('\twhen starting from ' + current_starting_point + ':');
+
+                    results.forEach(result => {
+                        if (result.distance <= results[0].distance) {
+                            console.log('\t\tshortest path is ' + result.path + ' ('+result.distance+' moves)');
+                        }
+                    });
+                })
+            }
+
+            find_all_combinations_for(input, output=[]) {
+                if (input.length == 0) {
+                    this.combinations.push(output);
+                }
+
+                input.forEach(item => {
+                    let new_output = [...output,item]
+                    let new_input = input.filter(v=>v!=item);
+                    this.find_all_combinations_for(new_input, new_output);
+                });
+            }
+        }
+
+        let letters = new Lift_Template(['X','A','B','C','D'], 'X');
+        letters.find_all_combinations_for(letters.shelves_all.filter(v=>v!=letters.entry_point));
+        letters.simulate_combinations_starting_from(letters.shelves_all);
+
+        let negative = new Lift_Template(['3','2','1','X','-1','-2','-3','-4','-5','-6'], 'X');
+        negative.find_all_combinations_for(['3','-6','-5']);
+        negative.simulate_combinations_starting_from(negative.shelves_all);
+        
+        let aisle = new Lift_Template([
+            '115','113','109','105','101',
+            '100',
+            '97','93','89','85','81','77','72','70','68','66','64','62','60','58','56','54','52','50','48','46','44','42','40','38','36','34','32','30','28','26','24','22','20','16','12','8','4','1'
+        ], '100');
+        
+        let example_order = ['115', '109', '101', '93', '85', '77', '40', '34', '32', '22', '16', '12', '8', '1'];
+        let before_entry_point = [];
+        let after_entry_point = [];
+        let entry_point_index = aisle.shelves_all.findIndex(x=>x==aisle.entry_point);
+
+        example_order.forEach(current_item => {
+            let current_index = aisle.shelves_all.findIndex(x=>x==current_item);
+            if (current_index < entry_point_index) {
+                before_entry_point.push(current_item);
+            } else {
+                after_entry_point.push(current_item);
+            }
+        });
+
+        aisle.combinations = [
+            [...before_entry_point,                   ...after_entry_point],
+            [...before_entry_point.slice().reverse(), ...after_entry_point],
+            [...before_entry_point,                   ...after_entry_point.slice().reverse()],
+            [...before_entry_point.slice().reverse(), ...after_entry_point.slice().reverse()],
+            
+            [...after_entry_point,                   ...before_entry_point],
+            [...after_entry_point.slice().reverse(), ...before_entry_point],
+            [...after_entry_point,                   ...before_entry_point.slice().reverse()],
+            [...after_entry_point.slice().reverse(), ...before_entry_point.slice().reverse()],
+        ];
+
+        aisle.simulate_combinations_starting_from([
+            '115', 
+            '100', 
+            aisle.shelves_all[Math.floor(aisle.shelves_all.length / 2)], 
+            '8'
+        ]);
+    </script>
+</body>
+</html>
