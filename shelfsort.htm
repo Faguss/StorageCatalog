@@ -81,7 +81,7 @@
 		"non_matching": "Nieprzypisane",
 	};
 
-	var raw_storage_key = `
+	const RAW_STORAGE_KEY = `
 	A17 - AA 30915 - AA 38199 
 	A19 - AA 38200 - AA 43899 
 	A20 - AA 43900 - AA 49799 
@@ -528,7 +528,7 @@
 	P8LA6 A6 F9-A9 G3,AA 40C-AA 93C,AA 07E-AA 75E,AA 31F-AA 47F,A2 2552-A2 5500
 	`;
 
-	var raw_storage_map = `
+	const RAW_STORAGE_MAP = `
 	A:
 	entry:100
 	   P   T
@@ -667,20 +667,8 @@
 	29     87
 	`;
 
-	var test = `
-	a10 AIO 0231-8628FC
-	`;`
-	A10:646CH,CJ,CK,0-370CL
-	`;`
-	C6 AGR..-PRZ..
-	C2 AA 0001U - AA 3319U
-	C1 AA 30915 - AA 38199 
-	C4 0-350HH
-	C3 HG
-	C5 AE*
-	C6 AGR..-PRZ..`;
-	var storage = raw_storage_key_to_array(raw_storage_key);
-	storage.map = raw_storage_map_to_array(raw_storage_map);
+	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
+	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
 	document.getElementById("all_tags").innerHTML = storage.tags.join(', ');
 
 	var original_color = document.getElementById("draganddrop_field").style.backgroundColor;
@@ -814,16 +802,16 @@
 
 				let last = range.length>1 ? 1 : 0;
 
-				/*todo: BI 001-001CE
-				BI 001CE-001
-				*/
 				if (range[last].hasOwnProperty('prefix')) {
 					pattern.prefix = range[last].prefix;
 				}
 
-				if (range[last].hasOwnProperty('suffix')) {
+				if (range[last].hasOwnProperty('suffix') && range[last].suffix!='') {
 					pattern.suffix = range[last].suffix;
-				}
+				} else
+					if (range[0].hasOwnProperty('suffix')) {
+						pattern.suffix = range[0].suffix;
+					}
 
 				if (range[0].hasOwnProperty('number')) {
 					// input is two numbers (e.g 0-100)
