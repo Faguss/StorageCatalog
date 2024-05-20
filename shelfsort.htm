@@ -5,8 +5,6 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title>Storage sorting</title>
-	<script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
-	<script src="https://unpkg.com/write-excel-file@1.x/bundle/write-excel-file.min.js"></script>
 	<style>
 	table {
   		border-collapse: collapse;
@@ -55,8 +53,8 @@
 <body>
 	<span id="controls">
 		<div id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="drag_over_handler(event, this, 1);" ondragleave="drag_over_handler(event, this, 0);">
-			Przeciągnij i upuść tutaj plik excel<br><br>
-			<input type="file" multiple="multiple" onchange="parse_dropped_file(this)">
+			Przeciągnij i upuść tutaj plik CSV<br><br>
+			<input type="file" multiple="multiple" onchange="parse_dropped_file_csv(this)">
 		</div>
 
 		<small>Rozpoznawalne tagi: <span id="all_tags"></span></small><br>
@@ -64,7 +62,7 @@
 		<br>
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
-		<button type="button" onclick="generate_spreadsheet(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))" style="margin-bottom:25px">Utwórz plik excel</button>
+		<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))" style="margin-bottom:25px">Utwórz plik CSV</button>
 		<button type="button" onclick="print_html_table()">Wydrukuj</button>
 	</span>
 	<div id="output"></div>
@@ -620,7 +618,7 @@
 	34 71
 	35     89
 	36 55
-	37 93
+	37 95
 	38     93
 	39 89
 	40 77
@@ -636,7 +634,7 @@
 	C:
 	entry:99
 	   P   T
-	1  88
+	1  85
 	2      83
 	3  77
 	4      67
@@ -651,7 +649,7 @@
 	13     120
 	14 73
 	15 69
-	16 4
+	16 1
 	17 30
 	18 26
 	19     29
@@ -975,6 +973,15 @@
 			}
 		}
 
+		function compare_number(current_id, current, storage_pattern) {
+			if (storage_pattern.prefix!=DEFAULT_PREFIX && /[0-9]/.test(storage_pattern.prefix)) {
+				let current_new = parse_id_number(current_id, storage_pattern.prefix);
+				return current_new.number >= storage_pattern.start && current_new.number<=storage_pattern.end && current_new.digits==storage_pattern.digits;
+			} else {
+				return current.number >= storage_pattern.start && current.number<=storage_pattern.end && current.digits==storage_pattern.digits;
+			}
+		}
+
 		input_text.split(/\r?\n/).forEach(line => {
 			let words = line.trim().split(/\s+/);
 			if (words.length == 0)
@@ -987,7 +994,7 @@
 			let tags    = words.splice(1).map(x=>x.toLowerCase());
 			let current = parse_id_number(current_id);
 			let matched = false;
-
+			
 			for(let i=0; i<storage.pattern.length && (!matched || continue_search); i++) {
 				if (
 					(!storage.pattern[i].hasOwnProperty('length') ||
@@ -1006,7 +1013,7 @@
 					current.suffix == storage.pattern[i].suffix)
 					&&
 					((!storage.pattern[i].hasOwnProperty('start') || !storage.pattern[i].hasOwnProperty('end') || !storage.pattern[i].hasOwnProperty('digits')) ||
-					current.number >= storage.pattern[i].start && current.number<=storage.pattern[i].end && current.digits==storage.pattern[i].digits)
+					compare_number(current_id, current, storage.pattern[i]))
 					&&
 					((!storage.pattern[i].hasOwnProperty('tag') && tags.length==0) ||
 					tags.includes(storage.pattern[i].tag))
@@ -1074,8 +1081,9 @@
 			let column = columns.findIndex(x => x==input[2].toUpperCase());
 			let row = parseInt(input[3]);
 
-			if (side == 'L')
+			if (side == 'L') {
 				column = columns.length - 1 - column;
+			}
 
 			let aisle = cabinet * 2 - (side=='L'?1:0);
 			return first_shelf + (aisle-1)*number_of_shelves + (row-1)*columns.length + column;
@@ -1109,11 +1117,14 @@
 				let shelves = Object.keys(initial_list[section]);
 
 				if (section == 'p') {
+					/*
+					special sorting temporary disabled
 					shelves.sort(function(x,y) {
 						let a = P_storage_relative_shelf_location_to_absolute_sort(x);
 						let b = P_storage_relative_shelf_location_to_absolute_sort(y);
 						return a==b ? 0 : (a<b ? -1 : 1);
-					})
+					})*/
+					shelves.sort();
 				} else {
 					shelves.sort();
 				}
@@ -1185,12 +1196,15 @@
 	});
 
 	document.addEventListener("DOMContentLoaded", function(event) {
-		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(document.getElementById("input").value, storage, document.getElementById("continuesearch").checked));
+		let initial_input = document.getElementById("input").value;
+		if (initial_input.length > 0) {
+			document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(initial_input, storage, document.getElementById("continuesearch").checked));
+		}
 	});
 	
 	function drop_handler(event, field) {
 		event.preventDefault();
-		parse_dropped_file(event.dataTransfer);
+		parse_dropped_file_csv(event.dataTransfer);
 		field.style.backgroundColor = original_color;
 	}
 	
@@ -1199,7 +1213,8 @@
 		field.style.backgroundColor = enable ? "coral" : original_color;
 	}
 
-	function parse_dropped_file(input) {
+	// Requires read-excel-file (currently not using it)
+	function parse_dropped_file_excel(input) {
 		readXlsxFile(input.files[0]).then(function(rows) {
 			let text = "";
 			
@@ -1213,6 +1228,33 @@
 			textarea.value = text;
 			textarea.dispatchEvent(new Event('input'));
 		});
+	}
+
+	function parse_dropped_file_csv(input) {
+		const reader = new FileReader();
+		reader.addEventListener("load", function() {
+			// read csv https://gist.github.com/Jezternz/c8e9fafc2c114e079829974e3764db75
+			const objPattern = new RegExp(("(\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\\,\\r\\n]*))"),"gi");
+			let arrMatches = null, arrData = [[]];
+			while (arrMatches = objPattern.exec(reader.result)) {
+				if (arrMatches[1].length && arrMatches[1] !== ",")arrData.push([]);
+				arrData[arrData.length - 1].push(arrMatches[2] ? 
+					arrMatches[2].replace(new RegExp( "\"\"", "g" ), "\"") :
+					arrMatches[3]);
+			}
+
+			let textarea = document.getElementById("input");
+			arrData.forEach(row => {
+				if (row.length >= 4) {
+					textarea.value += row[3] + "\n";
+				}
+			})
+			textarea.dispatchEvent(new Event('input'));
+		}, false);
+
+		if (input.files.length > 0) {
+			reader.readAsText(input.files[0], "UTF-8");
+		}
 	}
 
 
@@ -1257,6 +1299,17 @@
 		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody></table>';
 	}
 
+	function generate_file_name() {
+		var today = new Date();
+		var dd    = String(today.getDate()).padStart(2, '0');
+		var mm    = String(today.getMonth() + 1).padStart(2, '0');
+		var hh    = String(today.getHours()).padStart(2, '0');
+		var min   = String(today.getMinutes()).padStart(2, '0');
+		var yyyy  = today.getFullYear();
+		return 'lista' + yyyy + '_' + mm + '_' + dd + '-' + hh + '-' + min;
+	}
+
+	// Requires write-excel-file (currently not using it)
 	function generate_spreadsheet(sorted_numbers) {
 		if (sorted_numbers.total_count == 0) {
 			alert("Nic nie ma!");
@@ -1314,18 +1367,51 @@
 
 			excel_rows.push(excel_row);
 		}
-		
-		var today = new Date();
-		var dd    = String(today.getDate()).padStart(2, '0');
-		var mm    = String(today.getMonth() + 1).padStart(2, '0');
-		var hh    = String(today.getHours()).padStart(2, '0');
-		var min   = String(today.getMinutes()).padStart(2, '0');
-		var yyyy  = today.getFullYear();
 
 		writeXlsxFile(excel_rows, {
 			columns,
-			fileName: 'lista' + yyyy + '_' + mm + '_' + dd + '-' + hh + '-' + min + '.xlsx'
+			fileName: generate_file_name() + '.xlsx'
 		})
+	}
+
+	function generate_csv(sorted_numbers) {
+		if (sorted_numbers.total_count == 0) {
+			return '';
+		}
+		
+		let sections_with_items = [];
+		Object.keys(STORAGE_SECTION_NAMES).forEach(section => {
+			if (sorted_numbers.sections.hasOwnProperty(section) && sorted_numbers.sections[section].length > 0) {
+				sections_with_items.push(section);
+			}
+		});
+
+		let csv = '';
+		let item_count_in_largest_section = 0;
+
+		sections_with_items.forEach((section, index) => {
+			csv += (index>0?',':'') + STORAGE_SECTION_NAMES[section];
+			
+			if (sorted_numbers.sections[section].length > item_count_in_largest_section) {
+				item_count_in_largest_section = sorted_numbers.sections[section].length;
+			}
+		});
+		
+		for(let row=0; row<item_count_in_largest_section; row++) {
+			csv += '\n';
+			sections_with_items.forEach((section, index) => {
+				csv += (index>0?',':'') + (sorted_numbers.sections[section] && sorted_numbers.sections[section][row] ? sorted_numbers.sections[section][row] : '');
+			});
+		}
+
+		var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		var url = URL.createObjectURL(blob);
+
+		// Create a link to download it
+		var pom = document.createElement('a');
+		pom.href = url;
+		pom.setAttribute('download', generate_file_name() + '.csv');
+		pom.click();
 	}
 
 	function print_html_table() {
