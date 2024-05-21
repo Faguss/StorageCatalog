@@ -72,11 +72,11 @@
 	const MAX_DIGITS = 5;
 
 	const STORAGE_SECTION_NAMES = {
-		"a": "Szafa #1",
-		"b": "Szafa #2",
-		"c": "Szafa #3",
-		"p": "Piwnica",
-		"non_matching": "Nieprzypisane",
+		'a': 'Szafa #1',
+		'b': 'Szafa #2',
+		'c': 'Szafa #3',
+		'p': 'Piwnica',
+		'non_matching': 'Nieprzypisane',
 	};
 
 	const RAW_STORAGE_KEY = `
@@ -667,13 +667,13 @@
 
 	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
 	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
-	document.getElementById("all_tags").innerHTML = storage.tags.join(', ');
+	document.getElementById('all_tags').innerHTML = storage.tags.join(', ');
 
-	var original_color = document.getElementById("draganddrop_field").style.backgroundColor;
+	var original_color = document.getElementById('draganddrop_field').style.backgroundColor;
 
 	
 	function is_numeric(str) {
-		if (typeof str != "string") return false
+		if (typeof str != 'string') return false
 		return !isNaN(str) && !isNaN(parseFloat(str))
 	}
 
@@ -832,20 +832,20 @@
 							}
 				}
 
-				if (range.length > 0 && range[0].hasOwnProperty("prefix_range")) {
+				if (range.length > 0 && range[0].hasOwnProperty('prefix_range')) {
 					pattern.prefix_start = range[0].prefix_range;
 					pattern.prefix_end = range[0].prefix_range;
 
-					if (range.length > 1 && range[1].hasOwnProperty("prefix_range")) {
+					if (range.length > 1 && range[1].hasOwnProperty('prefix_range')) {
 						pattern.prefix_end = range[1].prefix_range;
 					}
 				}
 
-				if (range[0].hasOwnProperty("length")) {
+				if (range[0].hasOwnProperty('length')) {
 					pattern.length = range[0].length;
 				}
 				
-				if (range[0].hasOwnProperty("regex")) {
+				if (range[0].hasOwnProperty('regex')) {
 					pattern.regex = range[0].regex;
 				}	
 
@@ -1071,45 +1071,72 @@
         }
 		
 		function P_storage_relative_shelf_location_to_absolute(input) {
-			if (input.length < 4) return 0;
-			const number_of_shelves = 24;
+			/*
+			Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
+			Shelves are numbered left to right, from the top row to bottom
+			*/
+			if (input.length < 4) {
+				return 0;
+			}
+
+			const number_of_shelves_on_one_cabinet_side = 24;
 			const columns = ['A','B','C','D'];
 			const first_shelf = 1;
 
 			let cabinet = parseInt(input[0]);
-			let side = input[1].toUpperCase();
-			let column = columns.findIndex(x => x==input[2].toUpperCase());
-			let row = parseInt(input[3]);
+			let side    = input[1].toUpperCase();
+			let column  = columns.findIndex(x => x==input[2].toUpperCase());
+			let row     = parseInt(input[3]);
 
+			let number_of_cabinet_sides = cabinet * 2 - (side=='L' ? 1 : 0);
+
+			// on the left side of a cabinet we start counting columns from the end
 			if (side == 'L') {
 				column = columns.length - 1 - column;
 			}
 
-			let aisle = cabinet * 2 - (side=='L'?1:0);
-			return first_shelf + (aisle-1)*number_of_shelves + (row-1)*columns.length + column;
- 		}
+			return first_shelf + number_of_shelves_on_one_cabinet_side*(number_of_cabinet_sides-1) + columns.length*(row-1) + column;
+		}
 
 		function P_storage_relative_shelf_location_to_absolute_sort(input) {
-			if (input.length < 4) return 0;
-			const number_of_shelves = 24;
-			const number_of_rows = 12;
+			/*
+			Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
+			Shelves are numbered top to bottom, starting from the farthest columns (counting on both sides of the aisle) to the nearest
+			*/
+			if (input.length < 4) {
+				return 0;
+			}
+
+			const number_of_shelves_on_one_cabinet_side = 24;
 			const columns = ['A','B','C','D'];
 			const first_shelf = 1;
 
 			let cabinet = parseInt(input[0]);
-			let side = input[1].toUpperCase();
-			let column = columns.findIndex(x => x==input[2].toUpperCase());
-			let row = parseInt(input[3]);
+			let side    = input[1].toUpperCase();
+			let column  = columns.length - 1 - columns.findIndex(x => x==input[2].toUpperCase()); //always reverse column index because we start with the farthest columns
+			let row     = parseInt(input[3]);
 
-			if (side == 'P')
-				column = columns.length - 1 - column;
+			// in one aisle we treat both sides as a single table (4 columns by 12 rows)
+			let number_of_rows_in_this_aisle = number_of_shelves_on_one_cabinet_side * 2 / columns.length;
 
-			let aisle = cabinet - (side=='L'?1:0);
+			let aisle = cabinet - (side=='L' ? 1 : 0);
+			let first_shelf_in_this_aisle = first_shelf;
+			
+			if (aisle == 0) {
+				number_of_rows_in_this_aisle = 6; // first aisle has only one side (4 columns by 6 rows)
+			} else {
+				// left side of the next cabinet counts as rows 7-12
+				if (side == 'L') {
+					row += 6;
+				}
 
-			if (side == 'L')
-				row += 6;
+				// sum shelves in the previous aisles
+				// first aisle has only 24 shelves (not 48) so we start with (first_shelf + number_of_shelves_on_one_cabinet_side)=25
+				// and then multiply number of shelves in an aisle (24*2=48) by all the remaining aisles (aisle-1)
+				first_shelf_in_this_aisle = first_shelf + number_of_shelves_on_one_cabinet_side + (number_of_shelves_on_one_cabinet_side*2)*(aisle-1);
+			}
 
-			return first_shelf + aisle*number_of_shelves + column*number_of_rows + (row-1);
+			return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
 		}
 
 		storage.sections.forEach(section => {
@@ -1117,14 +1144,11 @@
 				let shelves = Object.keys(initial_list[section]);
 
 				if (section == 'p') {
-					/*
-					special sorting temporary disabled
 					shelves.sort(function(x,y) {
 						let a = P_storage_relative_shelf_location_to_absolute_sort(x);
 						let b = P_storage_relative_shelf_location_to_absolute_sort(y);
 						return a==b ? 0 : (a<b ? -1 : 1);
-					})*/
-					shelves.sort();
+					})
 				} else {
 					shelves.sort();
 				}
@@ -1186,19 +1210,19 @@
 	}
 
 
-	input.addEventListener("input", function(e){
-		document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById("continuesearch").checked));
+	input.addEventListener('input', function(e){
+		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked));
 	});
 
-	document.getElementById("continuesearch").addEventListener("input", function(e){
-		let textarea = document.getElementById("input");
+	document.getElementById('continuesearch').addEventListener('input', function(e){
+		let textarea = document.getElementById('input');
 		textarea.dispatchEvent(new Event('input'));
 	});
 
-	document.addEventListener("DOMContentLoaded", function(event) {
-		let initial_input = document.getElementById("input").value;
+	document.addEventListener('DOMContentLoaded', function(event) {
+		let initial_input = document.getElementById('input').value;
 		if (initial_input.length > 0) {
-			document.getElementById("output").innerHTML = generate_html_table(sort_numbers_to_shelves(initial_input, storage, document.getElementById("continuesearch").checked));
+			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(initial_input, storage, document.getElementById('continuesearch').checked));
 		}
 	});
 	
@@ -1210,21 +1234,21 @@
 	
 	function drag_over_handler(event, field, enable) {
 		event.preventDefault();
-		field.style.backgroundColor = enable ? "coral" : original_color;
+		field.style.backgroundColor = enable ? 'coral' : original_color;
 	}
 
 	// Requires read-excel-file (currently not using it)
 	function parse_dropped_file_excel(input) {
 		readXlsxFile(input.files[0]).then(function(rows) {
-			let text = "";
+			let text = '';
 			
 			rows.forEach(row => {
 				if (row.length >= 7) {
-					text += row[6] + "\n";
+					text += row[6] + '\n';
 				}
 			});
 
-			let textarea = document.getElementById("input");
+			let textarea = document.getElementById('input');
 			textarea.value = text;
 			textarea.dispatchEvent(new Event('input'));
 		});
@@ -1232,28 +1256,37 @@
 
 	function parse_dropped_file_csv(input) {
 		const reader = new FileReader();
-		reader.addEventListener("load", function() {
+		reader.addEventListener('load', function() {
+
 			// read csv https://gist.github.com/Jezternz/c8e9fafc2c114e079829974e3764db75
-			const objPattern = new RegExp(("(\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\\,\\r\\n]*))"),"gi");
-			let arrMatches = null, arrData = [[]];
+			const objPattern = new RegExp(("(\\;|\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\\,\\;\\r\\n]*))"),"gi");
+			let arrMatches = null;
+			let arrData = [[]];
+
 			while (arrMatches = objPattern.exec(reader.result)) {
-				if (arrMatches[1].length && arrMatches[1] !== ",")arrData.push([]);
-				arrData[arrData.length - 1].push(arrMatches[2] ? 
-					arrMatches[2].replace(new RegExp( "\"\"", "g" ), "\"") :
-					arrMatches[3]);
+				if (arrMatches[1].length && (arrMatches[1] !== ',' && arrMatches[1] !== ';')) {
+					arrData.push([]);
+				}
+
+				arrData[arrData.length-1].push(
+					arrMatches[2] 
+						? arrMatches[2].replace(new RegExp( "\"\"", "g" ), "\"") 
+						: arrMatches[3]
+				);
 			}
 
-			let textarea = document.getElementById("input");
-			arrData.forEach(row => {
-				if (row.length >= 4) {
-					textarea.value += row[3] + "\n";
+			let textarea = document.getElementById('input');
+			textarea.value = '';
+			arrData.forEach((row,index) => {
+				if (index>0 && row.length>=4) {
+					textarea.value += row[3] + '\n';
 				}
 			})
 			textarea.dispatchEvent(new Event('input'));
 		}, false);
 
 		if (input.files.length > 0) {
-			reader.readAsText(input.files[0], "UTF-8");
+			reader.readAsText(input.files[0], 'UTF-8');
 		}
 	}
 
@@ -1312,7 +1345,7 @@
 	// Requires write-excel-file (currently not using it)
 	function generate_spreadsheet(sorted_numbers) {
 		if (sorted_numbers.total_count == 0) {
-			alert("Nic nie ma!");
+			alert('Nic nie ma!');
 			return;
 		}
 
@@ -1404,19 +1437,17 @@
 			});
 		}
 
-		var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-		var url = URL.createObjectURL(blob);
-
-		// Create a link to download it
-		var pom = document.createElement('a');
-		pom.href = url;
-		pom.setAttribute('download', generate_file_name() + '.csv');
-		pom.click();
+		let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+		let url = URL.createObjectURL(blob);
+		let dl_link = document.createElement('a');
+		dl_link.href = url;
+		dl_link.setAttribute('download', generate_file_name() + '.csv');
+		dl_link.click();
 	}
 
 	function print_html_table() {
-		if (document.getElementById("output").innerHTML == "") {
-			alert("Nie ma nic do wydrukowania");
+		if (document.getElementById('output').innerHTML == '') {
+			alert('Nie ma nic do wydrukowania');
 			return;
 		}
 
