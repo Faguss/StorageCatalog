@@ -15,17 +15,22 @@
 		border: 1px solid #ddd;
 		padding: 8px;
 	}
-	td {
+	tbody td {
 		border: 1px solid #ddd;
 		padding-left: 8px;
 		padding-right: 8px;
 		font-size: small;
 	}
-	tr:nth-child(even) {
+	tbody tr:nth-child(even) {
 		background-color: #e4e4e4;
 	}
-	tr:hover {
+	tbody tr:hover {
 		background-color: #acacac;
+	}
+	tfoot {
+		text-align: right;
+		font-style: italic; 
+		font-size: small;
 	}
 	#draganddrop_field {
 		background-color: rgb(236, 228, 228); 
@@ -57,8 +62,11 @@
 			<input type="file" multiple="multiple" onchange="parse_dropped_file_csv(this)">
 		</div>
 
-		<small>Rozpoznawalne tagi: <span id="all_tags"></span></small><br>
-		<textarea id="input"></textarea>
+		<small>
+			Rozpoznawalne tagi: <br>
+			<div style="margin-left:1em;" id="all_tags"></div><br>
+		</small>
+		<textarea id="input" rows=10></textarea>
 		<br>
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
@@ -129,7 +137,7 @@
 	A6:CW,CX,CY, 
 
 	A18 - AA 001T, AA 001U,AA 001V-900V 
-	A42: A2 3301-A2 5728
+	A42: A2* tag:2022
 
 	B6: AA 0001E-AA 4659E
 	B12: AA 4660E- AA 9000E
@@ -146,7 +154,7 @@
 	B30: AA 1041K - AA 5030K
 	B32:AA 5031K- AA 9070K
 	B33: AA 9071K - AA 9999K,AA 0001L- AA 3120L
-	B41:AA 901V,001W,AE*,AJ*,AM*,AN*,A2 2552-A2 5434
+	B41:AA 901V,001W,AE*,AJ*,AM*,AN*,A2* tag:2023,A2* tag:2024
 	B37: AA 3122L-AA 7220L
 	B39:AA 7221L-AA 9999L
 	B43: AA 0002N- AA 1810N
@@ -667,7 +675,11 @@
 
 	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
 	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
-	document.getElementById('all_tags').innerHTML = storage.tags.join(', ');
+	document.getElementById('all_tags').innerHTML = storage.tags_section.join(', ');
+
+	storage.tags_local.forEach(tag => {
+		document.getElementById('all_tags').innerHTML += '<br>' + tag.range + ' ' + tag.name;
+	})	
 
 	var original_color = document.getElementById('draganddrop_field').style.backgroundColor;
 
@@ -693,9 +705,10 @@
 		let output = {
 			pattern: [],
 			sections: [],
-			tags: [],
+			tags_section: [],
+			tags_local: [],
 		};
-		let tag = '';
+		let tag_section = '';
 		const tag_keyword = 'tag:';
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
@@ -704,9 +717,9 @@
 				return;
 
 			if (line.substring(0,tag_keyword.length) == tag_keyword) {
-				tag = line.substring(tag_keyword.length);
-				if (tag.length > 0 && !output.tags.includes(tag)) {
-					output.tags.push(tag);
+				tag_section = line.substring(tag_keyword.length);
+				if (tag_section.length > 0 && !output.tags_section.includes(tag_section)) {
+					output.tags_section.push(tag_section);
 				}
 				return;
 			}
@@ -784,6 +797,16 @@
 
 			tokens.forEach(token => {
 				token = token.trim();
+
+				let tag_local = '';
+				let tag_local_start = token.indexOf(tag_keyword);
+				if (tag_local_start > -1) {
+					let tag_local_end = tag_local_start + token.substring(tag_local_start).search(/\s|$/);
+					tag_local = token.substring(tag_local_start+tag_keyword.length, tag_local_end);
+					token = token.substring(0,tag_local_start).trim() + token.substring(tag_local_end).trim();
+					output.tags_local.push({'shelf':shelf,'section':section,'range':token,'name':tag_local});
+				}
+
 				if (token.length == 0)
 					return;
 
@@ -794,8 +817,8 @@
 					shelf: shelf,					
 				};
 
-				if (tag != '') {
-					pattern.tag = tag;
+				if (tag_section != '' || tag_local != '') {
+					pattern.tag = tag_local!='' ? tag_local : tag_section;
 				}
 
 				let last = range.length>1 ? 1 : 0;
@@ -1304,15 +1327,19 @@
 		});
 
 		let html_head = '';
+		let html_foot = '<tr>';
 		let item_count_in_largest_section = 0;
 
 		sections_with_items.forEach(section => {
 			html_head += '<th>' + STORAGE_SECTION_NAMES[section] + '</th>';
+			html_foot += '<td>' + sorted_numbers.sections[section].length + '</td>';
 			
 			if (sorted_numbers.sections[section].length > item_count_in_largest_section) {
 				item_count_in_largest_section = sorted_numbers.sections[section].length;
 			}
 		});
+
+		html_foot += '</tr><tr><td colspan="5">Suma: ' + sorted_numbers.total_count + '</td></tr>';
 
 		let html_rows = '';
 		
@@ -1329,7 +1356,7 @@
 			html_rows += '<tr>' + html_row + '</tr>';
 		}
 
-		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody></table>';
+		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody><tfoot>' + html_foot + '</tfoot></table>';
 	}
 
 	function generate_file_name() {
