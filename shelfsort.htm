@@ -33,13 +33,24 @@
 		font-size: small;
 	}
 	#draganddrop_field {
-		background-color: rgb(236, 228, 228); 
-		border:1px solid brown; 
-		max-width:300px; 
-		height:150px; 
-		margin-bottom:2em; 
-		text-align:center; 
-		padding-top:1em;
+		position: fixed; 
+		top: 0; 
+		left: 0; 
+		z-index: 9999999999;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0,0,0,0.5);
+		transition: visibility 175ms, opacity 175ms;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.draganddrop_field_text {
+		font-family: sans-serif;
+		font-size: 400%;
+		text-transform: uppercase;
+		font-weight: bold;
+		color: rgb(182, 43, 43);
 	}
 	@keyframes orange-fade {
 		from {
@@ -56,28 +67,36 @@
 </head>
 
 <body>
-	<span id="controls">
-		<div id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="drag_over_handler(event, this, 1);" ondragleave="drag_over_handler(event, this, 0);">
-			Przeciągnij i upuść tutaj plik CSV<br><br>
-			<input type="file" multiple="multiple" onchange="parse_dropped_file_csv(this)">
+	<div style="margin-bottom:1em;" id="controls">
+		<div style="visibility:hidden; opacity:0;"; id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
+			<div class="draganddrop_field_text">Upuść tutaj plik CSV</div>
 		</div>
 
-		<small>
-			Rozpoznawalne tagi: <br>
-			<div style="margin-left:1em;" id="all_tags"></div><br>
-		</small>
+		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
+		<p>Wpisz numery w polu poniżej lub przeciągnij plik CSV z listą.</p>	
 		<textarea id="input" rows=10></textarea>
 		<br>
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
-		<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))" style="margin-bottom:25px">Utwórz plik CSV</button>
+		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
+		<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Utwórz plik CSV</button>
 		<button type="button" onclick="print_html_table()">Wydrukuj</button>
-	</span>
+
+		<div style="display:none;" id="tags_info">
+			<p style="margin-bottom:0">Obok numeru dopisz oznaczenie aby wyszukać go w konkretnym miejscu. Na przykład: 
+				<span style="font-family:monospace;" id="tags_example"></span>
+				<br>
+				Dostępne oznaczenia to:
+			</p>
+			<div style="font-size:small; margin-left:1em;" id="tags_list"></div>
+		</div>
+	</div>
 	<div id="output"></div>
 
 	<script>
 	const DEFAULT_PREFIX = 'aa';
 	const MAX_DIGITS = 5;
+	const CSV_IMPORT_DATA_FROM_COLUMN = 'Nr';
 
 	const STORAGE_SECTION_NAMES = {
 		'a': 'Szafa #1',
@@ -675,14 +694,17 @@
 
 	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
 	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
-	document.getElementById('all_tags').innerHTML = storage.tags_section.join(', ');
+
+	let tags_field = document.getElementById('tags_list');
+	tags_field.innerHTML = storage.tags_section.join('<br>');
 
 	storage.tags_local.forEach(tag => {
-		document.getElementById('all_tags').innerHTML += '<br>' + tag.range + ' ' + tag.name;
-	})	
+		tags_field.innerHTML += '<br>' + tag.name + ' (tylko dla ' + tag.range + ')';
+	})
 
-	var original_color = document.getElementById('draganddrop_field').style.backgroundColor;
-
+	if (storage.tags_section.length > 0) {
+		document.getElementById('tags_example').innerHTML = DEFAULT_PREFIX + '12345 ' + storage.tags_section[0];
+	}
 	
 	function is_numeric(str) {
 		if (typeof str != 'string') return false
@@ -804,7 +826,12 @@
 					let tag_local_end = tag_local_start + token.substring(tag_local_start).search(/\s|$/);
 					tag_local = token.substring(tag_local_start+tag_keyword.length, tag_local_end);
 					token = token.substring(0,tag_local_start).trim() + token.substring(tag_local_end).trim();
-					output.tags_local.push({'shelf':shelf,'section':section,'range':token,'name':tag_local});
+					output.tags_local.push({
+						'shelf'  : shelf,
+						'section': section,
+						'range'  : token.replace('*',''),
+						'name'   : tag_local
+					});
 				}
 
 				if (token.length == 0)
@@ -1248,16 +1275,28 @@
 			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(initial_input, storage, document.getElementById('continuesearch').checked));
 		}
 	});
+
+	var drag_and_drop_field       = document.getElementById('draganddrop_field');
+	var drag_and_drop_last_target = null;
+
+	window.addEventListener('dragenter', function(event) {
+		drag_and_drop_last_target            = event.target;
+		drag_and_drop_field.style.visibility = '';
+		drag_and_drop_field.style.opacity    = 1;
+	});
+
+	window.addEventListener('dragleave', function(event) {
+		if (event.target === drag_and_drop_last_target || event.target === document) {
+			drag_and_drop_field.style.visibility = 'hidden';
+			drag_and_drop_field.style.opacity    = 0;
+		}
+	});
 	
 	function drop_handler(event, field) {
 		event.preventDefault();
 		parse_dropped_file_csv(event.dataTransfer);
-		field.style.backgroundColor = original_color;
-	}
-	
-	function drag_over_handler(event, field, enable) {
-		event.preventDefault();
-		field.style.backgroundColor = enable ? 'coral' : original_color;
+		field.style.visibility = 'hidden';
+		field.style.opacity    = 0;
 	}
 
 	// Requires read-excel-file (currently not using it)
@@ -1280,31 +1319,36 @@
 	function parse_dropped_file_csv(input) {
 		const reader = new FileReader();
 		reader.addEventListener('load', function() {
-
-			// read csv https://gist.github.com/Jezternz/c8e9fafc2c114e079829974e3764db75
-			const objPattern = new RegExp(("(\\;|\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\\,\\;\\r\\n]*))"),"gi");
-			let arrMatches = null;
-			let arrData = [[]];
-
-			while (arrMatches = objPattern.exec(reader.result)) {
-				if (arrMatches[1].length && (arrMatches[1] !== ',' && arrMatches[1] !== ';')) {
-					arrData.push([]);
-				}
-
-				arrData[arrData.length-1].push(
-					arrMatches[2] 
-						? arrMatches[2].replace(new RegExp( "\"\"", "g" ), "\"") 
-						: arrMatches[3]
-				);
-			}
-
 			let textarea = document.getElementById('input');
 			textarea.value = '';
-			arrData.forEach((row,index) => {
-				if (index>0 && row.length>=4) {
-					textarea.value += row[3] + '\n';
+			let wanted_column = -1;
+
+			reader.result.split(/\r?\n/).forEach((line,line_number) => {
+				line = line.trim();
+				
+				if (line.length > 0) {
+					let column_number = 0;
+					let column_start  = 0;
+
+					for (let i=0; i<=line.length; i++) {
+						if (i==line.length || line[i] == ';' || line[i] == ',') {
+							column_number++;
+	
+							if (line_number == 0) {
+								if (line.substring(column_start,i).toLowerCase() == CSV_IMPORT_DATA_FROM_COLUMN.toLowerCase()) {
+									wanted_column = column_number - 1;
+								}
+							} else 
+								if (column_number > wanted_column && wanted_column >= 0) {
+									textarea.value += line.substring(column_start,i) + '\n';
+								}
+	
+							column_start = i + 1;
+						}
+					}
 				}
-			})
+			});
+
 			textarea.dispatchEvent(new Event('input'));
 		}, false);
 
@@ -1465,10 +1509,9 @@
 		}
 
 		let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-		let url = URL.createObjectURL(blob);
 		let dl_link = document.createElement('a');
-		dl_link.href = url;
-		dl_link.setAttribute('download', generate_file_name() + '.csv');
+		dl_link.href = URL.createObjectURL(blob);
+		dl_link.download = generate_file_name() + '.csv';
 		dl_link.click();
 	}
 
