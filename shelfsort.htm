@@ -69,11 +69,11 @@
 <body>
 	<div style="margin-bottom:1em;" id="controls">
 		<div style="visibility:hidden; opacity:0;"; id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
-			<div class="draganddrop_field_text">Upuść tutaj plik CSV</div>
+			<div class="draganddrop_field_text">Upuść tutaj pliki CSV/TXT</div>
 		</div>
 
 		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
-		<p>Wpisz numery w polu poniżej lub przeciągnij plik CSV z listą.</p>	
+		<p>Wpisz numery w polu poniżej lub przeciągnij plik z listą.</p>	
 		<textarea id="input" rows=10></textarea>
 		<br>
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
@@ -103,7 +103,7 @@
 		'b': 'Szafa #2',
 		'c': 'Szafa #3',
 		'p': 'Piwnica',
-		'non_matching': 'Nieprzypisane',
+		'non_matching': 'Nieznalezione',
 	};
 
 	const RAW_STORAGE_KEY = `
@@ -1294,66 +1294,79 @@
 	
 	function drop_handler(event, field) {
 		event.preventDefault();
-		parse_dropped_file_csv(event.dataTransfer);
+		parse_dropped_files(event.dataTransfer);
 		field.style.visibility = 'hidden';
 		field.style.opacity    = 0;
 	}
 
-	// Requires read-excel-file (currently not using it)
-	function parse_dropped_file_excel(input) {
-		readXlsxFile(input.files[0]).then(function(rows) {
-			let text = '';
-			
-			rows.forEach(row => {
-				if (row.length >= 7) {
-					text += row[6] + '\n';
-				}
-			});
+	function parse_dropped_files(input) {
+		if (input.files.length == 0)
+			return;
 
-			let textarea = document.getElementById('input');
-			textarea.value = text;
-			textarea.dispatchEvent(new Event('input'));
-		});
-	}
+		let textarea = document.getElementById('input');
+		textarea.value = '';
 
-	function parse_dropped_file_csv(input) {
-		const reader = new FileReader();
-		reader.addEventListener('load', function() {
-			let textarea = document.getElementById('input');
-			textarea.value = '';
-			let wanted_column = -1;
+		for (var i=0; i<input.files.length; i++) {
+			(function(file, is_last) {
+				const reader = new FileReader();
+				reader.onload = function() {
+					switch(file.name.slice(-3).toLowerCase()) {
+						case 'csv' : {
+							let wanted_column = -1;
 
-			reader.result.split(/\r?\n/).forEach((line,line_number) => {
-				line = line.trim();
-				
-				if (line.length > 0) {
-					let column_number = 0;
-					let column_start  = 0;
+							reader.result.split(/\r?\n/).forEach((line,line_number) => {
+								line = line.trim();
+								
+								if (line.length > 0) {
+									let column_number = 0;
+									let column_start  = 0;
 
-					for (let i=0; i<=line.length; i++) {
-						if (i==line.length || line[i] == ';' || line[i] == ',') {
-							column_number++;
-	
-							if (line_number == 0) {
-								if (line.substring(column_start,i).toLowerCase() == CSV_IMPORT_DATA_FROM_COLUMN.toLowerCase()) {
-									wanted_column = column_number - 1;
+									for (let i=0; i<=line.length; i++) {
+										if (i==line.length || line[i] == ';' || line[i] == ',') {
+											column_number++;
+
+											if (line_number == 0) {
+												if (line.substring(column_start,i).toLowerCase() == CSV_IMPORT_DATA_FROM_COLUMN.toLowerCase()) {
+													wanted_column = column_number - 1;
+												}
+											} else 
+												if (column_number == wanted_column+1 && wanted_column >= 0) {
+													textarea.value += line.substring(column_start,i).trim() + '\n';
+												}
+
+											column_start = i + 1;
+										}
+									}
 								}
-							} else 
-								if (column_number > wanted_column && wanted_column >= 0) {
-									textarea.value += line.substring(column_start,i) + '\n';
-								}
-	
-							column_start = i + 1;
+							});
+							break;
+						}
+
+						case 'txt' : {
+							textarea.value += reader.result.trim() + '\n'; 
+							break;
+						}
+
+						// Requires read-excel-file.js (currently disabled)
+						case 'xslx' : {
+							readXlsxFile(file).then(function(rows) {							
+								rows.forEach(row => {
+									if (row.length >= 7) {
+										textarea.value += row[6] + '\n';
+									}
+								});
+							});
+							break;
 						}
 					}
+
+					if (is_last) {
+						textarea.dispatchEvent(new Event('input'));
+					}
 				}
-			});
 
-			textarea.dispatchEvent(new Event('input'));
-		}, false);
-
-		if (input.files.length > 0) {
-			reader.readAsText(input.files[0], 'UTF-8');
+				reader.readAsText(file, "UTF-8");
+			})(input.files[i], i==input.files.length-1);
 		}
 	}
 
