@@ -956,6 +956,7 @@
 			sections: {non_matching: []},
 			total_count: 0,
 			last_item: {section:'',index:0},
+			duplicates: [],
 		};
 		let initial_list = {
 			last_item: {
@@ -1072,6 +1073,12 @@
 						initial_list[storage.pattern[i].section][storage.pattern[i].shelf] = [];
 					}
 
+					initial_list[storage.pattern[i].section][storage.pattern[i].shelf].forEach(item => {
+						if (item.text == line && !output.duplicates.includes(line)) {
+							output.duplicates.push(line);
+						}
+					});
+
 					initial_list[storage.pattern[i].section][storage.pattern[i].shelf].push({ruleid:i,text:line});
 					initial_list.last_item = {
 						section: storage.pattern[i].section, 
@@ -1084,6 +1091,10 @@
 			}
 			
 			if (!matched) {
+				if (output.sections.non_matching.includes(line) && !output.duplicates.includes(line)) {
+					output.duplicates.push(line);
+				}
+
 				initial_list.last_item.section = '';
 				initial_list.last_item.shelf   = '';
 				initial_list.last_item.text    = '';
@@ -1413,7 +1424,11 @@
 			html_rows += '<tr>' + html_row + '</tr>';
 		}
 
-		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody><tfoot>' + html_foot + '</tfoot></table>';
+		let html_p = sorted_numbers.duplicates.length > 0
+			? '<p><small><b>Duplikaty:</b> ' + sorted_numbers.duplicates.join(', ') + '</small></p>'
+			: '';
+
+		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody><tfoot>' + html_foot + '</tfoot></table>' + html_p;
 	}
 
 	function generate_file_name() {
