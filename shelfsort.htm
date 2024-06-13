@@ -951,7 +951,44 @@
 		return output;
 	}
 
-	function sort_numbers_to_shelves(input_text, storage, continue_search=false) {
+	function preprocess_input_text(input_area) {
+		let new_text         = '';
+		let new_line         = true;
+		let cursor_position  = input_area.selectionStart;
+		let line_number      = 0;
+		let line_with_cursor = -1;
+
+		for (let i=0; i<=input_area.value.length; i++) {
+			if (i == cursor_position) {
+				line_with_cursor = line_number;
+			}
+
+			if (i < input_area.value.length) {
+				if (input_area.value[i] == '\r' || input_area.value[i] == '\n') {
+					new_line = true;
+					if (input_area.value[i] == '\n')
+						line_number++;
+				} else {
+					if (new_line && input_area.value[i].trim() !== '') {
+						new_line = false;
+	
+						if (is_numeric(input_area.value[i])) {
+							new_text += DEFAULT_PREFIX;
+							cursor_position += 2;
+						}
+					}
+				}
+	
+				new_text += input_area.value[i];
+			}
+		}
+
+		input_area.value = new_text;
+		input_area.setSelectionRange(cursor_position, cursor_position);
+		return line_with_cursor;
+	}
+
+	function sort_numbers_to_shelves(input_text, storage, continue_search=false, selected_line=-1) {
 		let output = {
 			sections: {non_matching: []},
 			total_count: 0,
@@ -1033,7 +1070,7 @@
 			}
 		}
 
-		input_text.split(/\r?\n/).forEach(line => {
+		input_text.split(/\r?\n/).forEach((line, line_number) => {
 			let words = line.trim().split(/\s+/);
 			if (words.length == 0)
 				return;
@@ -1080,11 +1117,14 @@
 					});
 
 					initial_list[storage.pattern[i].section][storage.pattern[i].shelf].push({ruleid:i,text:line});
-					initial_list.last_item = {
-						section: storage.pattern[i].section, 
-						shelf: storage.pattern[i].shelf, 
-						text: line
-					};
+					
+					if (line_number == selected_line) {
+						initial_list.last_item = {
+							section: storage.pattern[i].section, 
+							shelf: storage.pattern[i].shelf, 
+							text: line
+						};
+					}
 					output.total_count++;
 					matched = true;
 				}
@@ -1095,11 +1135,14 @@
 					output.duplicates.push(line);
 				}
 
-				initial_list.last_item.section = '';
-				initial_list.last_item.shelf   = '';
-				initial_list.last_item.text    = '';
-				output.last_item.section = 'non_matching';
-				output.last_item.index   = output.sections.non_matching.length;
+				if (line_number == selected_line) {
+					initial_list.last_item.section = '';
+					initial_list.last_item.shelf   = '';
+					initial_list.last_item.text    = '';
+					output.last_item.section       = 'non_matching';
+					output.last_item.index         = output.sections.non_matching.length;
+				}
+
 				output.sections.non_matching.push(line);
 				output.total_count++;
 			}
@@ -1272,7 +1315,8 @@
 
 
 	input.addEventListener('input', function(e){
-		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked));
+		let line_with_cursor = preprocess_input_text(e.target);
+		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
@@ -1281,9 +1325,9 @@
 	});
 
 	document.addEventListener('DOMContentLoaded', function(event) {
-		let initial_input = document.getElementById('input').value;
-		if (initial_input.length > 0) {
-			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(initial_input, storage, document.getElementById('continuesearch').checked));
+		let textarea = document.getElementById('input');
+		if (textarea.value.length > 0) {
+			textarea.dispatchEvent(new Event('input'));
 		}
 	});
 
@@ -1549,8 +1593,11 @@
 			return;
 		}
 
-		document.getElementById('controls').style.display = 'none';
+		let controls = document.getElementById('controls');
+		let saved    = controls.style.display;
+		controls.style.display = 'none';
 		print();
+		controls.style.display = saved;
 	}
 	</script>
 </body>
