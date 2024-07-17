@@ -719,10 +719,6 @@
 			return is_space(input_character) || input_character==':' || input_character=='-';
 		}
 
-		function pad_number(input) {
-			return parseInt('9'.repeat(MAX_DIGITS - input.length));
-		}
-
 		let output = {
 			pattern: [],
 			sections: [],
@@ -869,14 +865,14 @@
 					} else
 						// input is one number (e.g 100)
 						if (range.length > 0 && range[0].number!='') {
-							pattern.start = parseInt(range[0].number);
-							pattern.end = pad_number(pattern.suffix);
 							pattern.digits = range[0].number.length;
+							pattern.start = parseInt(range[0].number);
+							pattern.end = parseInt('9'.repeat(pattern.digits));
 						} else
 							// input is letters (e.g AA)
 							if (pattern.suffix != '') {
 								pattern.start = 0;
-								pattern.end = pad_number(pattern.suffix);
+								pattern.end = parseInt('9'.repeat(MAX_DIGITS - pattern.suffix.length));
 								pattern.digits = pattern.end.toString().length;
 							}
 				}
