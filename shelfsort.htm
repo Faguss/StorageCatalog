@@ -79,7 +79,7 @@
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
 		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
-		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('key_info').style);document.getElementById('key_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
+		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('key_info').style);document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
 		<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Utwórz plik CSV</button>
 		<button type="button" onclick="print_html_table()">Wydrukuj</button>
 
@@ -94,11 +94,17 @@
 
 		<div style="display:none;" id="key_info">
 			<div style="margin-top:1em">
-				<label for="key_select">Indeks sekcji:</label>
-				<select name="key_select" id="key_select">
+				<label for="key_info_select">Indeks sekcji:</label>
+				<select name="key_info_select" id="key_info_select">
+				</select> 
+				<label for="key_info_select_sort">Sortuj wg:</label>
+				<select name="key_info_select_sort" id="key_info_select_sort">
+					<option value="default" selected="selected">kolejności wyszukiwania</option>
+					<option value="shelf">numeracji półek</option>
+					<option value="suffix">końcówki</option>
 				</select> 
 			</div>
-			<p style="font-family:monospace; line-height:1.3em;"id="key_display"></p>
+			<p style="font-family:monospace; line-height:1.3em;"id="key_info_display"></p>
 		</div>
 	</div>
 	<div id="output"></div>
@@ -871,7 +877,7 @@
 						} else
 							// input is letters (e.g AA)
 							if (pattern.suffix != '') {
-								pattern.start = 0;
+								pattern.start = 1;
 								pattern.end = parseInt('9'.repeat(MAX_DIGITS - pattern.suffix.length));
 								pattern.digits = pattern.end.toString().length;
 							}
@@ -1338,53 +1344,86 @@
 		}
 
 		// Key display select
-		let key_select = document.getElementById('key_select');
+		let key_info_select      = document.getElementById('key_info_select');
+		let key_info_select_sort = document.getElementById('key_info_select_sort');
+		let key_info_display     = document.getElementById('key_info_display');
+
 		storage.sections.forEach(section_name => {
 			let option = document.createElement('option');
     		option.value = section_name;
     		option.innerHTML = STORAGE_SECTION_NAMES[section_name];
-    		key_select.appendChild(option);
+    		key_info_select.appendChild(option);
 		});
 
-		key_select.addEventListener('change', (event) => {
-			let text_field = document.getElementById('key_display');
-			let index = storage.sections.indexOf(event.target.value);
-			let new_text = '';
-			if (index >= 0) {
-				storage.pattern.forEach(p => {
-					if (p.section == event.target.value) {
-						new_text += '<b>' + p.shelf.padStart(2,'0') + ':</b> ';
-
-						if (p.hasOwnProperty('start') && p.hasOwnProperty('end')) {
-							new_text += 
-								p.prefix.toUpperCase() + p.start.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>' + 
-								' - ' + 
-								p.prefix.toUpperCase() + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
-						} 
-						else if (p.hasOwnProperty('regex')) {
-							new_text += 'zaczyna się od: ' + p.regex;
-						}
-						else if (p.hasOwnProperty('length')) {
-							new_text += 'długość: ' + p.length;
-						} 
-						else if (p.hasOwnProperty('prefix_start') && p.hasOwnProperty('prefix_end')) {
-							new_text += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
-						}
-						else {
-							if (p.hasOwnProperty('prefix'))
-								new_text += p.prefix.toUpperCase();
-
-							if (p.hasOwnProperty('tag'))
-								new_text += ' <i>' + p.tag + '</i>';
-						}
-
-						new_text += '<br>';
-					}
-				});
-			}
-			text_field.innerHTML = new_text;
-		});
+		key_info_select.addEventListener('change', (event) => {display_storage_key(key_info_select, key_info_select_sort, key_info_display)});
+		key_info_select_sort.addEventListener('change', (event) => {display_storage_key(key_info_select, key_info_select_sort, key_info_display)});
 	});
+
+	function display_storage_key(storage_section_select, sort_type_select, target_text_field) {
+		let new_text = '';
+		
+		if (storage.sections.indexOf(storage_section_select.value) >= 0) {
+			let list_of_keys_to_sort = [];
+
+			storage.pattern.forEach((p,index) => {
+				if (p.section == storage_section_select.value) {
+					let value_to_sort_by = '';
+					
+					switch(sort_type_select.value) {
+						case 'default' : value_to_sort_by=index; break;
+						case 'shelf'   : value_to_sort_by=parseInt(p.shelf); break;
+						case 'suffix'  : 
+							value_to_sort_by = 
+								(p.hasOwnProperty('digits') && p.hasOwnProperty('suffix'))
+								? p.suffix.length.toString() + '_' + p.digits + '_' + p.suffix
+								: '';
+							break;
+					}
+					
+					list_of_keys_to_sort.push({
+						sort_by: value_to_sort_by,
+						pattern_index: index
+					});
+				}
+			});
+
+			list_of_keys_to_sort
+			.sort(function (a, b) {
+				return ((a.sort_by < b.sort_by) ? -1 : ((a.sort_by == b.sort_by) ? 0 : 1));
+			})
+			.forEach(item => {
+				let p = storage.pattern[item.pattern_index];
+				new_text += '<b>' + p.shelf.padStart(2,'0') + ':</b> ';
+
+				if (p.hasOwnProperty('start') && p.hasOwnProperty('end')) {
+					new_text += 
+						p.prefix.toUpperCase() + p.start.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>' + 
+						' - ' + 
+						p.prefix.toUpperCase() + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
+				} 
+				else if (p.hasOwnProperty('regex')) {
+					new_text += 'zaczyna się od: ' + p.regex;
+				}
+				else if (p.hasOwnProperty('length')) {
+					new_text += 'długość: ' + p.length;
+				} 
+				else if (p.hasOwnProperty('prefix_start') && p.hasOwnProperty('prefix_end')) {
+					new_text += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
+				}
+				else {
+					if (p.hasOwnProperty('prefix'))
+						new_text += p.prefix.toUpperCase();
+
+					if (p.hasOwnProperty('tag'))
+						new_text += ' <i>' + p.tag + '</i>';
+				}
+
+				new_text += '<br>';
+			});
+		}
+
+		target_text_field.innerHTML = new_text;
+	}
 
 	var drag_and_drop_field       = document.getElementById('draganddrop_field');
 	var drag_and_drop_last_target = null;
@@ -1607,7 +1646,8 @@
 
 	function generate_csv(sorted_numbers) {
 		if (sorted_numbers.total_count == 0) {
-			return '';
+			alert('Nie ma nic do eksportowania');
+			return;
 		}
 		
 		let sections_with_items = [];
