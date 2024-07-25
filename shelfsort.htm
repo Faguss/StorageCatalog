@@ -796,7 +796,7 @@
 								total += '[0-9]';
 							}
 					});
-					output.regex = new RegExp('^' + total + '.+$', 'g');
+					output.regex = new RegExp('^' + total + '.+$', '');
 					return output;
 				}
 				
@@ -1556,7 +1556,7 @@
 				let current_value = (sorted_numbers.sections[section] && sorted_numbers.sections[section][row] ? sorted_numbers.sections[section][row] : '');
 				let is_last       = sorted_numbers.last_item.section == section && sorted_numbers.last_item.index == row;
 
-				html_row += '<td '+ (is_last?'class=\'color_flash\'':'') +'>' + current_value + '</td>';
+				html_row += '<td onclick="toggle_strike(this)"'+ (is_last?'class=\'color_flash\'':'') +'>' + current_value + '</td>';
 			});
 			
 			html_rows += '<tr>' + html_row + '</tr>';
@@ -1693,6 +1693,14 @@
 		controls.style.display = 'none';
 		print();
 		controls.style.display = saved;
+	}
+	
+	function toggle_strike(dom_item) {
+		if (dom_item.style.getPropertyValue('text-decoration') == '') {
+			dom_item.style.setProperty('text-decoration', 'line-through');
+		} else {
+			dom_item.style.setProperty('text-decoration', '');
+		}
 	}
 	</script>
 </body>
