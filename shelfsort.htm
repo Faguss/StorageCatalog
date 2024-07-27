@@ -4,10 +4,16 @@
 	<meta charset="utf-8" />
 	<meta http-equiv="x-ua-compatible" content="ie=edge" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Storage sorting</title>
+	<title>Lokalizowanie akt</title>
 	<style>
 	table {
   		border-collapse: collapse;
+	}
+	table caption {
+		font-size: x-small;
+  		text-align: right;
+  		margin-bottom: 4px;
+		display: none;
 	}
 	th {
 		text-align: center;
@@ -99,7 +105,7 @@
 				</select> 
 				<label for="key_info_select_sort">Sortuj wg:</label>
 				<select name="key_info_select_sort" id="key_info_select_sort">
-					<option value="default" selected="selected">kolejności wyszukiwania</option>
+					<option value="default" selected="selected">kolejności wpisania</option>
 					<option value="shelf">numeracji półek</option>
 					<option value="suffix">końcówki</option>
 				</select> 
@@ -1080,7 +1086,7 @@
 			if (current_id.length == 0) 
 				return;
 
-			let tags    = words.splice(1).map(x=>x.toLowerCase());
+			let tags    = words.splice(1).filter(x=>/^[a-zA-Z0-9]/.test(x)).map(x=>x.toLowerCase());
 			let current = parse_id_number(current_id);
 			let matched = false;
 			
@@ -1314,10 +1320,15 @@
 		return output;
 	}
 
-
-	input.addEventListener('input', function(e){
+	var save_timeout = null;
+	input.addEventListener('input', function(e){	
 		let line_with_cursor = preprocess_input_text(e.target);
-		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
+
+		clearTimeout(save_timeout);
+		save_timeout = setTimeout(function() {
+			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
+			localStorage.setItem("input_text",e.target.value);
+		}, 350);
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
@@ -1325,10 +1336,23 @@
 		textarea.dispatchEvent(new Event('input'));
 	});
 
+	var strike_list = [];
 	document.addEventListener('DOMContentLoaded', function(event) {
-		let textarea = document.getElementById('input');
+		let textarea   = document.getElementById('input');
+		textarea.value = localStorage.getItem("input_text");
+
+		if (localStorage.getItem("strike_list").length > 0) {
+			strike_list = JSON.parse(localStorage.getItem("strike_list"));
+		}
+		
+		if (!strike_list) {
+			strike_list = [];
+		}
+
 		if (textarea.value.length > 0) {
-			textarea.dispatchEvent(new Event('input'));
+			let line_with_cursor = preprocess_input_text(textarea);
+			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(textarea.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
+			localStorage.setItem("input_text",textarea.value);
 		}
 
 		// Tags information paragraph
@@ -1548,6 +1572,7 @@
 		html_foot += '</tr><tr><td colspan="5">Suma: ' + sorted_numbers.total_count + '</td></tr>';
 
 		let html_rows = '';
+		let new_strike_list = [];
 		
 		for(let row=0; row<item_count_in_largest_section; row++) {
 			let html_row = '';
@@ -1555,8 +1580,14 @@
 			sections_with_items.forEach(section => {
 				let current_value = (sorted_numbers.sections[section] && sorted_numbers.sections[section][row] ? sorted_numbers.sections[section][row] : '');
 				let is_last       = sorted_numbers.last_item.section == section && sorted_numbers.last_item.index == row;
+				let style         = '';
 
-				html_row += '<td onclick="toggle_strike(this)"'+ (is_last?'class=\'color_flash\'':'') +'>' + current_value + '</td>';
+				if (strike_list.includes(current_value)) {
+					style = ' style="text-decoration:line-through;" ';
+					new_strike_list.push(current_value);
+				}
+
+				html_row += '<td ' + style + 'onclick="toggle_strike(this)"'+ (is_last?'class="color_flash"':'') +'>' + current_value + '</td>';
 			});
 			
 			html_rows += '<tr>' + html_row + '</tr>';
@@ -1566,17 +1597,23 @@
 			? '<p><small><b>Duplikaty:</b> ' + sorted_numbers.duplicates.join(', ') + '</small></p>'
 			: '';
 
-		return '<table><thead><tr>' + html_head + '</tr></thead><tbody>' + html_rows + '</tbody><tfoot>' + html_foot + '</tfoot></table>' + html_p;
+		strike_list = new_strike_list;
+		localStorage.setItem("strike_list",JSON.stringify(strike_list));
+
+		return '<table><caption>' + 
+			generate_file_name('. :','<span style="float:left">'+document.title+'</span>') + 
+			'</caption><thead><tr>' + html_head + '</tr></thead><tbody>' + 
+			html_rows + '</tbody><tfoot>' + html_foot + '</tfoot></table>' + html_p;
 	}
 
-	function generate_file_name() {
+	function generate_file_name(punctuation='_--', prefix='lista') {
 		var today = new Date();
 		var dd    = String(today.getDate()).padStart(2, '0');
 		var mm    = String(today.getMonth() + 1).padStart(2, '0');
 		var hh    = String(today.getHours()).padStart(2, '0');
 		var min   = String(today.getMinutes()).padStart(2, '0');
 		var yyyy  = today.getFullYear();
-		return 'lista' + yyyy + '_' + mm + '_' + dd + '-' + hh + '-' + min;
+		return prefix + yyyy + punctuation[0] + mm + punctuation[0] + dd + punctuation[1] + hh + punctuation[2] + min;
 	}
 
 	// Requires write-excel-file (currently not using it)
@@ -1689,10 +1726,17 @@
 		}
 
 		let controls = document.getElementById('controls');
-		let saved    = controls.style.display;
+		let caption  = document.querySelector('caption');
+		let saved    = [controls.style.display, caption.style.display];
+
 		controls.style.display = 'none';
+		caption.style.display  = 'table-caption';
 		print();
-		controls.style.display = saved;
+		
+		setTimeout(function() {
+			controls.style.display = saved[0];
+			caption.style.display  = saved[1];
+		}, 3000);
 	}
 	
 	function toggle_strike(dom_item) {
@@ -1701,6 +1745,14 @@
 		} else {
 			dom_item.style.setProperty('text-decoration', '');
 		}
+
+		if (strike_list.includes(dom_item.innerHTML)) {
+			strike_list = strike_list.filter(item => item !== dom_item.innerHTML);
+		} else {
+			strike_list.push(dom_item.innerHTML);
+		}
+
+		localStorage.setItem("strike_list",JSON.stringify(strike_list));
 	}
 	</script>
 </body>
