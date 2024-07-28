@@ -807,7 +807,7 @@
 				}
 				
 				let parts = input.trim().split(/\s/);
-				output.prefix = parts.length>1 ? parts[0] : DEFAULT_PREFIX;
+				output.prefix = parts.length>1 ? parts[0] : '';
 				output.number = '';
 				output.suffix = '';
 
@@ -857,9 +857,14 @@
 
 				let last = range.length>1 ? 1 : 0;
 
-				if (range[last].hasOwnProperty('prefix')) {
+				if (range[last].hasOwnProperty('prefix') && range[last].prefix!='') {
 					pattern.prefix = range[last].prefix;
-				}
+				} else
+					if (range[0].hasOwnProperty('prefix') && range[0].prefix!='') {
+						pattern.prefix = range[0].prefix;
+					} else {
+						pattern.prefix = DEFAULT_PREFIX;
+					}
 
 				if (range[last].hasOwnProperty('suffix') && range[last].suffix!='') {
 					pattern.suffix = range[last].suffix;
