@@ -67,7 +67,7 @@
 		}
 	}
 	.color_flash {
-		animation: orange-fade 5s ease-in-out 0s;
+		animation: orange-fade 8s ease-in-out 0s;
 	}
 	</style>
 </head>
@@ -79,9 +79,10 @@
 		</div>
 
 		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
-		<p>Wpisz numery w polu poniżej lub przeciągnij plik z listą.</p>	
+		<p>Wpisz numery w polu poniżej lub przeciągnij plik z listą.</p>
 		<textarea id="input" rows=10></textarea>
-		<br>
+		<p id="last_result" style="font-size:x-small;margin:0"></p>
+
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
 		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
@@ -96,6 +97,7 @@
 				Dostępne oznaczenia to:
 			</p>
 			<div style="font-size:small; margin-left:1em;" id="tags_list"></div>
+			<p>Oznaczenia niezaczynające się od litery lub cyfry są ignorowane (służą jako komentarz).</p>
 		</div>
 
 		<div style="display:none;" id="key_info">
@@ -855,25 +857,18 @@
 					pattern.tag = tag_local!='' ? tag_local : tag_section;
 				}
 
-				if (range.length > 1) {
-					if (range[1].hasOwnProperty('prefix') && range[1].prefix!='') {
-						pattern.prefix = range[1].prefix;
-					}
-
-					if (range[1].hasOwnProperty('suffix') && range[1].suffix!='') {
-						pattern.suffix = range[1].suffix;
-					}
+				if (range.length > 1 && range[1].hasOwnProperty('prefix') && range[1].prefix!='') {
+					pattern.prefix = range[1].prefix;
 				} else
-					if (range.length > 0) {
-						if (range[0].hasOwnProperty('prefix') && range[0].prefix!='') {
-							pattern.prefix = range[0].prefix;
-						} else {
-							pattern.prefix = DEFAULT_PREFIX;
-						}
+					if (range.length > 0 && range[0].hasOwnProperty('prefix')) {
+						pattern.prefix = range[0].prefix!='' ? range[0].prefix : DEFAULT_PREFIX;
+					}
 
-						if (range[0].hasOwnProperty('suffix')) {
-							pattern.suffix = range[0].suffix;
-						}
+				if (range.length > 1 && range[1].hasOwnProperty('suffix') && range[1].suffix!='') {
+					pattern.suffix = range[1].suffix;
+				} else
+					if (range.length > 0 && range[0].hasOwnProperty('suffix')) {
+						pattern.suffix = range[0].suffix;
 					}
 
 				if (range[0].hasOwnProperty('number')) {
@@ -971,8 +966,8 @@
 		let cursor_position  = input_area.selectionStart;
 		let line_number      = 0;
 		let line_with_cursor = -1;
-		let word_index       = 0;
-		let character_index  = 0;
+		let word_index       = -1;
+		let character_index  = -1;
 
 		for (let i=0; i<=input_area.value.length; i++) {
 			if (i == cursor_position) {
@@ -1170,7 +1165,14 @@
 			}
 			
 			if (!matched) {
-				if (output.sections.non_matching.includes(line_preprocessed) && !output.duplicates.includes(line_preprocessed)) {
+				let found = false;
+				for(let j=0; j<output.sections.non_matching.length && !found; j++) {
+					if (output.sections.non_matching[j].text == line_preprocessed) {
+						found = true;
+					}
+				}
+
+				if (found && !output.duplicates.includes(line_preprocessed)) {
 					output.duplicates.push(line_preprocessed);
 				}
 
@@ -1182,7 +1184,13 @@
 					output.last_item.index         = output.sections.non_matching.length;
 				}
 
-				output.sections.non_matching.push(line_preprocessed);
+				output.sections.non_matching.push({
+					text: line_preprocessed,
+					id: words[0],
+					tags: tags,
+					comments: comments
+				});
+				
 				output.total_count++;
 			}
 		});
@@ -1363,15 +1371,15 @@
 		return output;
 	}
 
-	var save_timeout = null;
+	var input_timeout = null;
 	input.addEventListener('input', function(e){	
 		let line_with_cursor = preprocess_input_text(e.target);
 
-		clearTimeout(save_timeout);
-		save_timeout = setTimeout(function() {
+		clearTimeout(input_timeout);
+		input_timeout = setTimeout(function() {
 			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
 			localStorage.setItem("input_text",e.target.value);
-		}, 350);
+		}, 250);
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
@@ -1628,7 +1636,7 @@
 					let comments = sorted_numbers.sections[section][row].comments ? sorted_numbers.sections[section][row].comments.join(' ') : '';
 
 					let text_content = 
-						(shelf.length>0 ? (shelf+': ') : '') +
+						(shelf ? (shelf+': ') : '') +
 						id +
 						(tags.length>0 ? (' '+tags) : '') +
 						(comments.length>0 ? (' '+comments) : '');
@@ -1644,11 +1652,18 @@
 					html_row += 
 						'<td ' + style + 'onclick="toggle_strike(this)"' + 
 						(is_last?'class="color_flash"':'') +'>' + 
-						(shelf.length>0 ? (shelf+': ') : '') +
+						(shelf ? (shelf+': ') : '') +
 						id +
 						(tags.length>0 ? (' <i>'+tags+'</i>') : '') +
 						(comments.length>0 ? (' <span style="font-size:x-small">'+comments+'</span>') : '') +
 						'</td>';
+
+					if (is_last) {
+						let last_result = document.getElementById('last_result');
+						if (last_result) {
+							last_result.textContent = id + (tags.length>0 ? (' '+tags) : '') + ' - ' + STORAGE_SECTION_NAMES[section] + ': ' + shelf;
+						}
+					}
 				} else {
 					html_row += '<td></td>'
 				}
