@@ -69,6 +69,14 @@
 	.color_flash {
 		animation: orange-fade 8s ease-in-out 0s;
 	}
+	#last_result {
+		font-size: small;
+		margin-top: 0;
+		margin-bottom: 2px;
+	}
+	#last_result .highlight {
+		color: #8b00ff;
+	}
 	</style>
 </head>
 
@@ -81,7 +89,7 @@
 		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
 		<p>Wpisz numery w polu poniżej lub przeciągnij plik z listą.</p>
 		<textarea id="input" rows=10></textarea>
-		<p id="last_result" style="font-size:x-small;margin:0"></p>
+		<p id="last_result"></p>
 
 		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
@@ -112,7 +120,7 @@
 					<option value="suffix">końcówki</option>
 				</select> 
 			</div>
-			<p style="font-family:monospace; line-height:1.3em;"id="key_info_display"></p>
+			<p style="font-family:monospace; line-height:1.3em;" id="key_info_display"></p>
 		</div>
 	</div>
 	<div id="output"></div>
@@ -1356,15 +1364,13 @@
 						output.last_item.index   = output.sections[section].length;
 					}
 
-					let shelf_name = is_numeric(shelf) && parseInt(shelf)<10 ? shelf.padStart(2,'0') : shelf;
-
 					output.sections[section].push({
-						shelf: shelf_name,
+						shelf: is_numeric(shelf) && parseInt(shelf)<10 ? shelf.padStart(2,'0') : shelf,
 						id: item.tokens[0],
 						tags: item.tokens[1],
 						comments: item.tokens[2]
 					});
-				})
+				});
 			});
 		});
 		
@@ -1661,7 +1667,7 @@
 					if (is_last) {
 						let last_result = document.getElementById('last_result');
 						if (last_result) {
-							last_result.textContent = id + (tags.length>0 ? (' '+tags) : '') + ' - ' + STORAGE_SECTION_NAMES[section] + ': ' + shelf;
+							last_result.innerHTML = id + (tags.length>0 ? (' '+tags) : '') + ' - <span class="highlight">' + STORAGE_SECTION_NAMES[section] + ': ' + shelf + '</span>';
 						}
 					}
 				} else {
