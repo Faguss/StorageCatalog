@@ -67,7 +67,7 @@
 		}
 	}
 	.color_flash {
-		animation: orange-fade 8s ease-in-out 0s;
+		background-color: orange;
 	}
 	#last_result {
 		font-size: small;
@@ -724,6 +724,8 @@
 	29     87
 	`;
 
+	const P_SECTION_SHELF_NUMBERED_UNTIL = 360;
+
 	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
 	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
 	
@@ -980,6 +982,11 @@
 		for (let i=0; i<=input_area.value.length; i++) {
 			if (i == cursor_position) {
 				line_with_cursor = line_number;
+
+				// if cursor is on the last line that is empty then assume it is on the previous line
+				if (i>0 && i == input_area.value.length && (input_area.value[i-1] == '\r' || input_area.value[i-1] == '\n')) {
+					line_with_cursor--;
+				}
 			}
 
 			if (i < input_area.value.length) {
@@ -1203,101 +1210,6 @@
 			}
 		});
         
-        function P_storage_format_relative_shelf_location(input) {
-            if (input.length < 4) return '';
-            const columns = ['a','b','c','d'];
-            let column = columns.findIndex(x => x==input[2].toLowerCase());
-            let column_description = 'od wejścia';
-
-            if (column >= columns.length/2) {
-                column = (columns.length-1) - column;
-                column_description = 'od ściany';
-            }
-            column += 1;
-
-            const max_rows = 6;
-            let row = parseInt(input[3]);
-            let row_description = 'od góry';
-            if (row > max_rows/2) {
-                row = max_rows - row + 1;
-                row_description = 'od dołu';
-            }
-
-            return 'Szafa #' + input[0] + ', ' + 
-                (input[1].toUpperCase()=='L'?'lewa':'prawa') + ' strona, ' + 
-                'kolumna:' + column + ' ' + column_description +', '+
-                'rząd:' + row + ' ' + row_description;
-        }
-		
-		function P_storage_relative_shelf_location_to_absolute(input) {
-			/*
-			Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
-			Shelves are numbered left to right, from the top row to bottom
-			*/
-			if (input.length < 4) {
-				return 0;
-			}
-
-			const number_of_shelves_on_one_cabinet_side = 24;
-			const columns = ['A','B','C','D'];
-			const first_shelf = 1;
-
-			let cabinet = parseInt(input[0]);
-			let side    = input[1].toUpperCase();
-			let column  = columns.findIndex(x => x==input[2].toUpperCase());
-			let row     = parseInt(input[3]);
-
-			let number_of_cabinet_sides = cabinet * 2 - (side=='L' ? 1 : 0);
-
-			// on the left side of a cabinet we start counting columns from the end
-			if (side == 'L') {
-				column = columns.length - 1 - column;
-			}
-
-			return first_shelf + number_of_shelves_on_one_cabinet_side*(number_of_cabinet_sides-1) + columns.length*(row-1) + column;
-		}
-
-		function P_storage_relative_shelf_location_to_absolute_sort(input) {
-			/*
-			Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
-			Shelves are numbered top to bottom, starting from the farthest columns (counting on both sides of the aisle) to the nearest
-			*/
-			if (input.length < 4) {
-				return 0;
-			}
-
-			const number_of_shelves_on_one_cabinet_side = 24;
-			const columns = ['A','B','C','D'];
-			const first_shelf = 1;
-
-			let cabinet = parseInt(input[0]);
-			let side    = input[1].toUpperCase();
-			let column  = columns.length - 1 - columns.findIndex(x => x==input[2].toUpperCase()); //always reverse column index because we start with the farthest columns
-			let row     = parseInt(input[3]);
-
-			// in one aisle we treat both sides as a single table (4 columns by 12 rows)
-			let number_of_rows_in_this_aisle = number_of_shelves_on_one_cabinet_side * 2 / columns.length;
-
-			let aisle = cabinet - (side=='L' ? 1 : 0);
-			let first_shelf_in_this_aisle = first_shelf;
-			
-			if (aisle == 0) {
-				number_of_rows_in_this_aisle = 6; // first aisle has only one side (4 columns by 6 rows)
-			} else {
-				// left side of the next cabinet counts as rows 7-12
-				if (side == 'L') {
-					row += 6;
-				}
-
-				// sum shelves in the previous aisles
-				// first aisle has only 24 shelves (not 48) so we start with (first_shelf + number_of_shelves_on_one_cabinet_side)=25
-				// and then multiply number of shelves in an aisle (24*2=48) by all the remaining aisles (aisle-1)
-				first_shelf_in_this_aisle = first_shelf + number_of_shelves_on_one_cabinet_side + (number_of_shelves_on_one_cabinet_side*2)*(aisle-1);
-			}
-
-			return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
-		}
-
 		storage.sections.forEach(section => {
 			if (!Object.keys(storage.map).includes(section)) {
 				let shelves = Object.keys(initial_list[section]);
@@ -1377,6 +1289,101 @@
 		return output;
 	}
 
+	function P_storage_format_relative_shelf_location(input) {
+		if (input.length < 4) return '';
+		const columns = ['a','b','c','d'];
+		let column = columns.findIndex(x => x==input[2].toLowerCase());
+		let column_description = 'od wejścia';
+
+		if (column >= columns.length/2) {
+			column = (columns.length-1) - column;
+			column_description = 'od ściany';
+		}
+		column += 1;
+
+		const max_rows = 6;
+		let row = parseInt(input[3]);
+		let row_description = 'od góry';
+		if (row > max_rows/2) {
+			row = max_rows - row + 1;
+			row_description = 'od dołu';
+		}
+
+		return 'Szafa #' + input[0] + ', ' + 
+			(input[1].toUpperCase()=='L'?'lewa':'prawa') + ' strona, ' + 
+			'kolumna:' + column + ' ' + column_description +', '+
+			'rząd:' + row + ' ' + row_description;
+	}
+	
+	function P_storage_relative_shelf_location_to_absolute(input) {
+		/*
+		Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
+		Shelves are numbered left to right, from the top row to bottom
+		*/
+		if (input.length < 4) {
+			return 0;
+		}
+
+		const number_of_shelves_on_one_cabinet_side = 24;
+		const columns = ['A','B','C','D'];
+		const first_shelf = 1;
+
+		let cabinet = parseInt(input[0]);
+		let side    = input[1].toUpperCase();
+		let column  = columns.findIndex(x => x==input[2].toUpperCase());
+		let row     = parseInt(input[3]);
+
+		let number_of_cabinet_sides = cabinet * 2 - (side=='L' ? 1 : 0);
+
+		// on the left side of a cabinet we start counting columns from the end
+		if (side == 'L') {
+			column = columns.length - 1 - column;
+		}
+
+		return first_shelf + number_of_shelves_on_one_cabinet_side*(number_of_cabinet_sides-1) + columns.length*(row-1) + column;
+	}
+
+	function P_storage_relative_shelf_location_to_absolute_sort(input) {
+		/*
+		Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
+		Shelves are numbered top to bottom, starting from the farthest columns (counting on both sides of the aisle) to the nearest
+		*/
+		if (input.length < 4) {
+			return 0;
+		}
+
+		const number_of_shelves_on_one_cabinet_side = 24;
+		const columns = ['A','B','C','D'];
+		const first_shelf = 1;
+
+		let cabinet = parseInt(input[0]);
+		let side    = input[1].toUpperCase();
+		let column  = columns.length - 1 - columns.findIndex(x => x==input[2].toUpperCase()); //always reverse column index because we start with the farthest columns
+		let row     = parseInt(input[3]);
+
+		// in one aisle we treat both sides as a single table (4 columns by 12 rows)
+		let number_of_rows_in_this_aisle = number_of_shelves_on_one_cabinet_side * 2 / columns.length;
+
+		let aisle = cabinet - (side=='L' ? 1 : 0);
+		let first_shelf_in_this_aisle = first_shelf;
+		
+		if (aisle == 0) {
+			number_of_rows_in_this_aisle = 6; // first aisle has only one side (4 columns by 6 rows)
+		} else {
+			// left side of the next cabinet counts as rows 7-12
+			if (side == 'L') {
+				row += 6;
+			}
+
+			// sum shelves in the previous aisles
+			// first aisle has only 24 shelves (not 48) so we start with (first_shelf + number_of_shelves_on_one_cabinet_side)=25
+			// and then multiply number of shelves in an aisle (24*2=48) by all the remaining aisles (aisle-1)
+			first_shelf_in_this_aisle = first_shelf + number_of_shelves_on_one_cabinet_side + (number_of_shelves_on_one_cabinet_side*2)*(aisle-1);
+		}
+
+		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
+	}
+
 	var input_timeout = null;
 	input.addEventListener('input', function(e){	
 		let line_with_cursor = preprocess_input_text(e.target);
@@ -1398,7 +1405,7 @@
 		let textarea   = document.getElementById('input');
 		textarea.value = localStorage.getItem('input_text');
 
-		if (localStorage.getItem('strike_list').length > 0) {
+		if (localStorage.getItem('strike_list')) {
 			strike_list = JSON.parse(localStorage.getItem('strike_list'));
 		}
 		
@@ -1474,7 +1481,20 @@
 			})
 			.forEach(item => {
 				let p = storage.pattern[item.pattern_index];
-				new_text += '<b>' + p.shelf.padStart(2,'0') + ':</b> ';
+				let shelf = '';
+
+				if (p.section == 'p') {
+					shelf = P_storage_relative_shelf_location_to_absolute(p.shelf);
+					if (shelf > P_SECTION_SHELF_NUMBERED_UNTIL) {
+						shelf = P_storage_format_relative_shelf_location(p.shelf);
+					} else {
+						shelf = shelf.toString().padStart(3,'0');
+					}
+				} else {
+					shelf = p.shelf.padStart(2,'0');
+				}
+
+				new_text += '<b>' + shelf + ':</b> ';
 
 				if (p.hasOwnProperty('start') && p.hasOwnProperty('end')) {
 					new_text += 
@@ -1641,18 +1661,17 @@
 					let tags     = sorted_numbers.sections[section][row].tags ? sorted_numbers.sections[section][row].tags.join(' ') : '';
 					let comments = sorted_numbers.sections[section][row].comments ? sorted_numbers.sections[section][row].comments.join(' ') : '';
 
-					let text_content = 
+					let text_without_comment = 
 						(shelf ? (shelf+': ') : '') +
 						id +
-						(tags.length>0 ? (' '+tags) : '') +
-						(comments.length>0 ? (' '+comments) : '');
+						(tags.length>0 ? (' '+tags) : '');
 
 					let is_last = sorted_numbers.last_item.section == section && sorted_numbers.last_item.index == row;
 					let style   = '';
 
-					if (strike_list.includes(text_content)) {
+					if (strike_list.includes(text_without_comment)) {
 						style = ' style="text-decoration:line-through;" ';
-						new_strike_list.push(text_content);
+						new_strike_list.push(text_without_comment);
 					}
 
 					html_row += 
@@ -1667,7 +1686,12 @@
 					if (is_last) {
 						let last_result = document.getElementById('last_result');
 						if (last_result) {
-							last_result.innerHTML = id + (tags.length>0 ? (' '+tags) : '') + ' - <span class="highlight">' + STORAGE_SECTION_NAMES[section] + ': ' + shelf + '</span>';
+							last_result.innerHTML = 
+								id + (tags.length>0 ? (' '+tags) : '') + 
+								' - <span class="highlight">' + 
+								STORAGE_SECTION_NAMES[section] + 
+								(shelf ? (': ' + shelf) : '') + 
+								'</span>';
 						}
 					}
 				} else {
@@ -1825,7 +1849,25 @@
 			print();
 		}, 200);
 
-		output.addEventListener('click', function(e) {toggle_controls(1)}, {once: true});
+		// Remove highlight color
+		let saved_color = '';
+		let saved_style = null;
+
+		for (let i=0; i<document.styleSheets.length; i++) {
+			for (let j=0; j<document.styleSheets[i].cssRules.length; j++) {
+				if (document.styleSheets[i].cssRules[j].selectorText == '.color_flash') {
+					saved_style = document.styleSheets[i].cssRules[j];
+					saved_color = document.styleSheets[i].cssRules[j].style.backgroundColor;
+					document.styleSheets[i].cssRules[j].style.backgroundColor = 'transparent';
+				}
+			}
+		}
+
+		output.addEventListener('click', function(e) {
+				toggle_controls(1);
+				saved_style.style.backgroundColor = saved_color;
+			}, {once: true}
+		);
 	}
 
 	function toggle_controls(show) {
@@ -1842,16 +1884,22 @@
 	}
 
 	function toggle_strike(dom_item) {
-		if (dom_item.style.getPropertyValue('text-decoration') == '') {
-			dom_item.style.setProperty('text-decoration', 'line-through');
-		} else {
-			dom_item.style.setProperty('text-decoration', '');
-		}
+		let tokens = [];
 
-		if (strike_list.includes(dom_item.textContent)) {
-			strike_list = strike_list.filter(item => item !== dom_item.textContent);
+		dom_item.textContent.trim().split(/\s+/).forEach((word,index)=> {
+			if (index==0 || (index>0 && /^[a-zA-Z0-9]/.test(word))) {
+				tokens.push(word);
+			}
+		});
+
+		let word_without_comment = tokens.join(' ');
+
+		if (strike_list.includes(word_without_comment)) {
+			strike_list = strike_list.filter(item => item !== word_without_comment);
+			dom_item.style.setProperty('text-decoration', '');
 		} else {
-			strike_list.push(dom_item.textContent);
+			strike_list.push(word_without_comment);
+			dom_item.style.setProperty('text-decoration', 'line-through');
 		}
 
 		localStorage.setItem('strike_list', JSON.stringify(strike_list));
