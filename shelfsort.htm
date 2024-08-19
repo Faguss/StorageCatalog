@@ -1291,28 +1291,11 @@
 
 	function P_storage_format_relative_shelf_location(input) {
 		if (input.length < 4) return '';
-		const columns = ['a','b','c','d'];
-		let column = columns.findIndex(x => x==input[2].toLowerCase());
-		let column_description = 'od wejścia';
-
-		if (column >= columns.length/2) {
-			column = (columns.length-1) - column;
-			column_description = 'od ściany';
-		}
-		column += 1;
-
-		const max_rows = 6;
-		let row = parseInt(input[3]);
-		let row_description = 'od góry';
-		if (row > max_rows/2) {
-			row = max_rows - row + 1;
-			row_description = 'od dołu';
-		}
-
-		return 'Szafa #' + input[0] + ', ' + 
-			(input[1].toUpperCase()=='L'?'lewa':'prawa') + ' strona, ' + 
-			'kolumna:' + column + ' ' + column_description +', '+
-			'rząd:' + row + ' ' + row_description;
+		let column = ['a','b','c','d'].findIndex(x => x==input[2].toLowerCase()) + 1;
+		return 'Szafa #' + input[0] + ' ' +
+			(input[1].toUpperCase()=='L'?'lewa':'prawa') + 
+			' rząd ' + input[3] +
+			' kol ' + column;
 	}
 	
 	function P_storage_relative_shelf_location_to_absolute(input) {
@@ -1384,15 +1367,10 @@
 		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
 	}
 
-	var input_timeout = null;
 	input.addEventListener('input', function(e){	
 		let line_with_cursor = preprocess_input_text(e.target);
-
-		clearTimeout(input_timeout);
-		input_timeout = setTimeout(function() {
-			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
-			localStorage.setItem("input_text",e.target.value);
-		}, 250);
+		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
+		localStorage.setItem("input_text",e.target.value);
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
@@ -1404,6 +1382,7 @@
 	document.addEventListener('DOMContentLoaded', function(event) {
 		let textarea   = document.getElementById('input');
 		textarea.value = localStorage.getItem('input_text');
+		textarea.focus();
 
 		if (localStorage.getItem('strike_list')) {
 			strike_list = JSON.parse(localStorage.getItem('strike_list'));
