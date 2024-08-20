@@ -1380,18 +1380,23 @@
 
 	var strike_list = [];
 	document.addEventListener('DOMContentLoaded', function(event) {
-		let textarea   = document.getElementById('input');
-		textarea.value = localStorage.getItem('input_text');
+		let textarea = document.getElementById('input');
 		textarea.focus();
-
-		if (localStorage.getItem('strike_list')) {
-			strike_list = JSON.parse(localStorage.getItem('strike_list'));
-		}
 		
-		if (!strike_list) {
+		let cursor = localStorage.getItem('cursor');
+		if (cursor) {
+			cursor = JSON.parse(cursor);
+			setTimeout(() => {textarea.setSelectionRange(cursor[0], cursor[1]);}, 10);	// second argument will not work on load so that's why timeout
+		}
+
+		let loaded_strike_list = localStorage.getItem('strike_list');
+		if (loaded_strike_list) {
+			strike_list = JSON.parse(loaded_strike_list);
+		} else {
 			strike_list = [];
 		}
 
+		textarea.value = localStorage.getItem('input_text');
 		if (textarea.value.length > 0) {
 			let line_with_cursor = preprocess_input_text(textarea);
 			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(textarea.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
@@ -1424,6 +1429,72 @@
 
 		key_info_select.addEventListener('change', (event) => {display_storage_key(key_info_select, key_info_select_sort, key_info_display)});
 		key_info_select_sort.addEventListener('change', (event) => {display_storage_key(key_info_select, key_info_select_sort, key_info_display)});
+	});
+
+	input.addEventListener('selectionchange', function(e){
+		localStorage.setItem('cursor', JSON.stringify([e.target.selectionStart,e.target.selectionEnd]));
+		
+		let line_start = e.target.value.lastIndexOf('\n', e.target.value[e.target.selectionStart] ? e.target.selectionStart-1 : e.target.selectionStart);
+		if (line_start == -1)
+			line_start = 0;
+
+		let line_end = e.target.value.indexOf('\n', e.target.selectionStart);
+		if (line_end == -1)
+			line_end = e.target.value.length;
+
+		let selected_id = get_id_without_comment(e.target.value.substring(line_start,line_end));
+		if (selected_id.length == 0) {
+			// special case: if input ends with empty new lines and the cursor is there then select last non-empty line in the input
+			selected_id = (function() {
+
+				// first check if there's no text after the current selection
+				for (i=e.target.selectionStart; i<e.target.value.length; i++) {
+					if (e.target.value.charCodeAt(i) > 32) {
+						return '';
+					}
+				}
+	
+				// look for last non-empty line
+				for (i=e.target.selectionStart; i>=0; i--) {
+					if (i == 0) {
+						return '';
+					}
+	
+					if (e.target.value.charCodeAt(i) > 32) {
+						line_start = e.target.value.lastIndexOf('\n', i);
+						if (line_start == -1)
+							line_start = 0;
+
+						line_end = i + 1;
+						return get_id_without_comment(e.target.value.substring(line_start,line_end));
+					}
+				}
+	
+				return '';
+			})();
+		}
+
+		const rows = document.querySelector("table>tbody")?.rows;
+		if (!rows)
+			return;
+
+		Array.from(rows).forEach(row => {
+			const cells = Array.from(row.cells);
+				cells.forEach(cell => {
+					if (selected_id == '') {
+						cell.classList.remove("color_flash");
+					} else {
+						let colon = cell.textContent.indexOf(':');
+						let current_id = get_id_without_comment(colon ? cell.textContent.slice(colon+1) : cell.textContent);
+	
+						if (current_id == selected_id) {
+							cell.classList.add("color_flash");
+						} else {
+							cell.classList.remove("color_flash");
+						}
+					}
+			});
+		});
 	});
 
 	function display_storage_key(storage_section_select, sort_type_select, target_text_field) {
@@ -1645,8 +1716,7 @@
 						id +
 						(tags.length>0 ? (' '+tags) : '');
 
-					let is_last = sorted_numbers.last_item.section == section && sorted_numbers.last_item.index == row;
-					let style   = '';
+					let style = '';
 
 					if (strike_list.includes(text_without_comment)) {
 						style = ' style="text-decoration:line-through;" ';
@@ -1654,15 +1724,14 @@
 					}
 
 					html_row += 
-						'<td ' + style + 'onclick="toggle_strike(this)"' + 
-						(is_last?'class="color_flash"':'') +'>' + 
+						'<td ' + style + 'onclick="toggle_strike(this)">' + 
 						(shelf ? (shelf+': ') : '') +
 						id +
 						(tags.length>0 ? (' <i>'+tags+'</i>') : '') +
 						(comments.length>0 ? (' <span style="font-size:x-small">'+comments+'</span>') : '') +
 						'</td>';
 
-					if (is_last) {
+					if (sorted_numbers.last_item.section == section && sorted_numbers.last_item.index == row) {
 						let last_result = document.getElementById('last_result');
 						if (last_result) {
 							last_result.innerHTML = 
@@ -1863,15 +1932,7 @@
 	}
 
 	function toggle_strike(dom_item) {
-		let tokens = [];
-
-		dom_item.textContent.trim().split(/\s+/).forEach((word,index)=> {
-			if (index==0 || (index>0 && /^[a-zA-Z0-9]/.test(word))) {
-				tokens.push(word);
-			}
-		});
-
-		let word_without_comment = tokens.join(' ');
+		let word_without_comment = get_id_without_comment(dom_item.textContent);
 
 		if (strike_list.includes(word_without_comment)) {
 			strike_list = strike_list.filter(item => item !== word_without_comment);
@@ -1882,6 +1943,17 @@
 		}
 
 		localStorage.setItem('strike_list', JSON.stringify(strike_list));
+	}
+
+	function get_id_without_comment(text) {
+		let tokens = [];
+		text.trim().split(/\s+/).forEach((word,index)=> {
+			if (index==0 || (index>0 && /^[a-zA-Z0-9]/.test(word))) {
+				tokens.push(word);
+			}
+		});
+
+		return tokens.join(' ');
 	}
 	</script>
 </body>
