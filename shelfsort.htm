@@ -111,14 +111,19 @@
 		<div style="display:none;" id="key_info">
 			<div style="margin-top:1em">
 				<label for="key_info_select">Indeks sekcji:</label>
-				<select name="key_info_select" id="key_info_select">
-				</select> 
+				<select name="key_info_select" id="key_info_select"></select> 
+
+				<label for="key_info_select_tag">Oznaczenie:</label>
+				<select name="key_info_select_tag" id="key_info_select_tag">
+					<option value="">brak</option>
+				</select>
+
 				<label for="key_info_select_sort">Sortuj wg:</label>
 				<select name="key_info_select_sort" id="key_info_select_sort">
 					<option value="default" selected="selected">kolejności wpisania</option>
 					<option value="shelf">numeracji półek</option>
 					<option value="suffix">końcówki</option>
-				</select> 
+				</select>
 			</div>
 			<p style="font-family:monospace; line-height:1.3em;" id="key_info_display"></p>
 		</div>
@@ -725,6 +730,10 @@
 	`;
 
 	const P_SECTION_SHELF_NUMBERED_UNTIL = 360;
+	const personal_keyword = 'indywidualne';
+	const personal_regex = /^[a-zA-Z][0-9][a-zA-Z].+$/;
+	const shortened_keyword = 'skrócone';
+	const shortened_values = [3,4];
 
 	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
 	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
@@ -746,11 +755,16 @@
 		let output = {
 			pattern: [],
 			sections: [],
-			tags_section: [],
+			tags_section: {},
 			tags_local: [],
 		};
 		let tag_section = '';
 		const tag_keyword = 'tag:';
+
+		Object.keys(STORAGE_SECTION_NAMES).forEach(key=>{
+			if (key != 'non_matching')
+				output.tags_section[key] = [];
+		});
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
 			line = line.trim();
@@ -759,9 +773,6 @@
 
 			if (line.substring(0,tag_keyword.length) == tag_keyword) {
 				tag_section = line.substring(tag_keyword.length);
-				if (tag_section.length > 0 && !output.tags_section.includes(tag_section)) {
-					output.tags_section.push(tag_section);
-				}
 				return;
 			}
 
@@ -799,7 +810,11 @@
 
 				const length_keyword = 'length:';
 				if (input.substring(0,length_keyword.length) == length_keyword) {
-					output.length = parseInt(input.substring(length_keyword.length));
+					let tokens = input.substring(length_keyword.length).split('-');
+					if (tokens.length > 0) {
+						output.length_min = parseInt(tokens[0]);
+						output.length_max = tokens.length>=2 ? parseInt(tokens[1]) : parseInt(tokens[0]);
+					}
 					return output;
 				}
 
@@ -815,6 +830,17 @@
 							}
 					});
 					output.regex = new RegExp('^' + total + '.+$', '');
+					return output;
+				}
+
+				if (input.substring(0,personal_keyword.length) == personal_keyword) {
+					output.regex = personal_regex;
+					return output;
+				}
+
+				if (input.substring(0,shortened_keyword.length) == shortened_keyword) {
+					output.length_min = shortened_values[0];
+					output.length_max = shortened_values[1];
 					return output;
 				}
 				
@@ -911,15 +937,20 @@
 					}
 				}
 
-				if (range[0].hasOwnProperty('length')) {
-					pattern.length = range[0].length;
+				if (range[0].hasOwnProperty('length_min') && range[0].hasOwnProperty('length_max')) {
+					pattern.length_min = range[0].length_min;
+					pattern.length_max = range[0].length_max;
 				}
 				
 				if (range[0].hasOwnProperty('regex')) {
 					pattern.regex = range[0].regex;
-				}	
+				}
 
 				output.pattern.push(pattern);
+
+				if (tag_section.length > 0 && !output.tags_section[section].includes(tag_section)) {
+					output.tags_section[section].push(tag_section);
+				}
 			});
 		});
 
@@ -1130,8 +1161,8 @@
 			
 			for(let i=0; i<storage.pattern.length && (!matched || continue_search); i++) {
 				if (
-					(!storage.pattern[i].hasOwnProperty('length') ||
-					current_id.length == storage.pattern[i].length)
+					((!storage.pattern[i].hasOwnProperty('length_min') || !storage.pattern[i].hasOwnProperty('length_max')) ||
+					(current_id.length >= storage.pattern[i].length_min && current_id.length <= storage.pattern[i].length_max))
 					&&
 					(!storage.pattern[i].hasOwnProperty('regex') ||
 					storage.pattern[i].regex.test(current_id))
@@ -1405,20 +1436,29 @@
 
 		// Tags information paragraph
 		let tags_field = document.getElementById('tags_list');
-		tags_field.innerHTML = storage.tags_section.join('<br>');
+		let tags_all   = [];
+
+		Object.keys(storage.tags_section).forEach(key=>{
+			storage.tags_section[key].forEach(item=>{
+				tags_all.push(item);
+			});
+		});
+
+		tags_field.innerHTML = tags_all.join('<br>');
 
 		storage.tags_local.forEach(tag => {
 			tags_field.innerHTML += '<br>' + tag.name + ' (tylko dla ' + tag.range + ')';
 		})
 
-		if (storage.tags_section.length > 0) {
-			document.getElementById('tags_example').innerHTML = DEFAULT_PREFIX + '12345 ' + storage.tags_section[0];
+		if (tags_all.length > 0) {
+			document.getElementById('tags_example').innerHTML = DEFAULT_PREFIX + '12345 ' + tags_all[0];
 		}
 
 		// Key display select
 		let key_info_select      = document.getElementById('key_info_select');
 		let key_info_select_sort = document.getElementById('key_info_select_sort');
 		let key_info_display     = document.getElementById('key_info_display');
+		let key_info_select_tag  = document.getElementById('key_info_select_tag');
 
 		storage.sections.forEach(section_name => {
 			let option = document.createElement('option');
@@ -1427,8 +1467,9 @@
     		key_info_select.appendChild(option);
 		});
 
-		key_info_select.addEventListener('change', (event) => {display_storage_key(key_info_select, key_info_select_sort, key_info_display)});
-		key_info_select_sort.addEventListener('change', (event) => {display_storage_key(key_info_select, key_info_select_sort, key_info_display)});
+		key_info_select.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
+		key_info_select_sort.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
+		key_info_select_tag.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
 	});
 
 	input.addEventListener('selectionchange', function(e){
@@ -1497,14 +1538,26 @@
 		});
 	});
 
-	function display_storage_key(storage_section_select, sort_type_select, target_text_field) {
+	function display_storage_key(current_control, storage_section_select, storage_tag_select, sort_type_select, target_text_field) {
 		let new_text = '';
-		
+
 		if (storage.sections.indexOf(storage_section_select.value) >= 0) {
 			let list_of_keys_to_sort = [];
 
+			if (current_control == storage_section_select) {
+				while (storage_tag_select.options.length > 1)
+					storage_tag_select.remove(1);
+
+				storage.tags_section[storage_section_select.value].forEach(tag => {
+					let option = document.createElement('option');
+					option.value = tag;
+					option.innerHTML = tag;
+					storage_tag_select.appendChild(option);
+				});
+			}
+
 			storage.pattern.forEach((p,index) => {
-				if (p.section == storage_section_select.value) {
+				if (p.section == storage_section_select.value && storage_tag_select.value==(p.hasOwnProperty('tag') ? p.tag : "")) {
 					let value_to_sort_by = '';
 					
 					switch(sort_type_select.value) {
@@ -1553,10 +1606,16 @@
 						p.prefix.toUpperCase() + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
 				} 
 				else if (p.hasOwnProperty('regex')) {
-					new_text += 'zaczyna się od: ' + p.regex;
+					if (String(p.regex) == String(personal_regex))
+						new_text += 'indywidualne';
+					else 
+						new_text += 'zaczyna się od: ' + p.regex;
 				}
-				else if (p.hasOwnProperty('length')) {
-					new_text += 'długość: ' + p.length;
+				else if (p.hasOwnProperty('length_min') && p.hasOwnProperty('length_max')) {
+					if (p.length_min==shortened_values[0] && p.length_max==shortened_values[1])
+						new_text += 'skrócone';
+					else
+						new_text += 'długość: ' + p.length_min + '-' + p.length_max;
 				} 
 				else if (p.hasOwnProperty('prefix_start') && p.hasOwnProperty('prefix_end')) {
 					new_text += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
