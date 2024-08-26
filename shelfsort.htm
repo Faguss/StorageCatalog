@@ -758,8 +758,16 @@
 			tags_section: {},
 			tags_local: [],
 		};
+		let defer_output = {
+			pattern: [],
+		};
 		let tag_section = '';
 		const tag_keyword = 'tag:';
+		const defer_keyword = 'sprawdzaj_na_końcu';
+		const line_keywords = {
+			'tag':'tag:',
+			'defer':'sprawdzaj_na_końcu'
+		};
 
 		Object.keys(STORAGE_SECTION_NAMES).forEach(key=>{
 			if (key != 'non_matching')
@@ -771,8 +779,8 @@
 			if (line.length == 0)
 				return;
 
-			if (line.substring(0,tag_keyword.length) == tag_keyword) {
-				tag_section = line.substring(tag_keyword.length);
+			if (line.substring(0,line_keywords['tag'].length) == line_keywords['tag']) {
+				tag_section = line.substring(line_keywords['tag'].length);
 				return;
 			}
 
@@ -864,20 +872,34 @@
 
 			tokens.forEach(token => {
 				token = token.trim();
-
 				let tag_local = '';
-				let tag_local_start = token.indexOf(tag_keyword);
-				if (tag_local_start > -1) {
-					let tag_local_end = tag_local_start + token.substring(tag_local_start).search(/\s|$/);
-					tag_local = token.substring(tag_local_start+tag_keyword.length, tag_local_end);
-					token = token.substring(0,tag_local_start).trim() + token.substring(tag_local_end).trim();
-					output.tags_local.push({
-						'shelf'  : shelf,
-						'section': section,
-						'range'  : token.replace('*',''),
-						'name'   : tag_local
-					});
-				}
+				let defer = false;
+
+				Object.keys(line_keywords).forEach(key=>{
+					let keyword = line_keywords[key];
+					let start = token.indexOf(keyword);
+					if (start > -1) {
+						let end = start + token.substring(start).search(/\s|$/);
+						let split = [token.substring(start,start+keyword.length), token.substring(start+keyword.length, end)];
+						token = token.substring(0,start).trim() + token.substring(end).trim();
+
+						switch(split[0]) {
+							case line_keywords['tag'] : {
+								tag_local = split[1];
+								output.tags_local.push({
+									'shelf'  : shelf,
+									'section': section,
+									'range'  : token.replace('*',''),
+									'name'   : tag_local
+								});
+							}; break;
+
+							case line_keywords['defer'] : {
+								defer = true;
+							}; break;
+						}
+					}
+				});
 
 				if (token.length == 0)
 					return;
@@ -946,13 +968,17 @@
 					pattern.regex = range[0].regex;
 				}
 
-				output.pattern.push(pattern);
+				(defer ? defer_output : output).pattern.push(pattern);
 
 				if (tag_section.length > 0 && !output.tags_section[section].includes(tag_section)) {
 					output.tags_section[section].push(tag_section);
 				}
 			});
 		});
+
+		defer_output.pattern.forEach(pattern => {
+			output.pattern.push(pattern);
+		})
 
 		return output;
 	}
