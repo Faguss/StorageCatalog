@@ -77,12 +77,16 @@
 	#last_result .highlight {
 		color: #8b00ff;
 	}
+	.key_info {
+		font-family: monospace;
+		line-height:1.3em;
+	}
 	</style>
 </head>
 
 <body>
 	<div style="margin-bottom:1em;" id="controls">
-		<div style="visibility:hidden; opacity:0;"; id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
+		<div style="visibility:hidden; opacity:0;" id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
 			<div class="draganddrop_field_text">Upuść tutaj pliki CSV/TXT</div>
 		</div>
 
@@ -91,7 +95,7 @@
 		<textarea id="input" rows=10></textarea>
 		<p id="last_result"></p>
 
-		<input type="checkbox" id="continuesearch" name="continuesearch" /><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
+		<input type="checkbox" id="continuesearch" name="continuesearch"><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
 		<br>
 		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
 		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('key_info').style);document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
@@ -111,11 +115,11 @@
 		<div style="display:none;" id="key_info">
 			<div style="margin-top:1em">
 				<label for="key_info_select">Indeks sekcji:</label>
-				<select name="key_info_select" id="key_info_select"></select> 
+				<select name="key_info_select" id="key_info_select"></select>
 
 				<label for="key_info_select_tag">Oznaczenie:</label>
 				<select name="key_info_select_tag" id="key_info_select_tag">
-					<option value="">brak</option>
+					<option value="" selected="selected">brak</option>
 				</select>
 
 				<label for="key_info_select_sort">Sortuj wg:</label>
@@ -125,7 +129,19 @@
 					<option value="suffix">końcówki</option>
 				</select>
 			</div>
-			<p style="font-family:monospace; line-height:1.3em;" id="key_info_display"></p>
+			
+			<p class="key_info" id="key_info_display"></p>
+			
+			<div id="key_info_map">
+				<h3>Mapa szafy:</h3>
+				<label for="key_info_map_display_sort">Sortuj wg:</label>
+				<select name="key_info_map_display_sort" id="key_info_map_display_sort">
+					<option value="place">miejsca</option>
+					<option value="shelf">numeracji półek</option>
+				</select>
+				<input type="checkbox" id="key_info_map_toggle_content" name="key_info_map_toggle_content"><label for="key_info_map_toggle_content">Pokaż zawartość</label>
+				<div style="margin-top:1em;" id="key_info_map_display"></div>
+			</div>
 		</div>
 	</div>
 	<div id="output"></div>
@@ -134,6 +150,7 @@
 	const DEFAULT_PREFIX = 'aa';
 	const MAX_DIGITS = 5;
 	const CSV_IMPORT_DATA_FROM_COLUMN = 'Nr';
+	const OUTPUT_TABLE_ID = 'output_table';
 
 	const STORAGE_SECTION_NAMES = {
 		'a': 'Szafa #1',
@@ -796,6 +813,10 @@
 			section = line.substring(0,j);
 			shelf = line.substring(j,i);
 			
+			if (is_numeric(shelf)) {
+				shelf = parseInt(shelf);
+			}
+			
 			if (!output.sections.includes(section)) {
 				output.sections.push(section);
 			}
@@ -1010,7 +1031,7 @@
 			} else {
 				tokens = line.split(/[\s]+/);
 				if (tokens.length >= 2 && is_numeric(tokens[0]) && is_numeric(tokens[1])) {
-					let shelf = parseInt(tokens[0]);
+					let shelf = is_numeric(tokens[0]) ? parseInt(tokens[0]) : tokens[0];
 					let position = parseInt(tokens[1]);
 					output[section][shelf] = position;
 
@@ -1334,7 +1355,7 @@
 					}
 
 					output.sections[section].push({
-						shelf: is_numeric(shelf) && parseInt(shelf)<10 ? shelf.padStart(2,'0') : shelf,
+						shelf: shelf,
 						id: item.tokens[0],
 						tags: item.tokens[1],
 						comments: item.tokens[2]
@@ -1431,8 +1452,11 @@
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
-		let textarea = document.getElementById('input');
-		textarea.dispatchEvent(new Event('input'));
+		document.getElementById('input').dispatchEvent(new Event('input'));
+	});
+	
+	document.getElementById('key_info_map_toggle_content').addEventListener('change', function(e){
+		document.getElementById('key_info_map_display_sort').dispatchEvent(new Event('change'));
 	});
 
 	var strike_list = [];
@@ -1485,6 +1509,10 @@
 		let key_info_select_sort = document.getElementById('key_info_select_sort');
 		let key_info_display     = document.getElementById('key_info_display');
 		let key_info_select_tag  = document.getElementById('key_info_select_tag');
+		
+		let key_info_map_display_sort   = document.getElementById('key_info_map_display_sort');
+		let key_info_map_display        = document.getElementById('key_info_map_display');
+		let key_info_map_toggle_content = document.getElementById('key_info_map_toggle_content');
 
 		storage.sections.forEach(section_name => {
 			let option = document.createElement('option');
@@ -1493,9 +1521,11 @@
     		key_info_select.appendChild(option);
 		});
 
-		key_info_select.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
+		key_info_select.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display); key_info_map_display_sort.dispatchEvent(new Event('change'));});
 		key_info_select_sort.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
 		key_info_select_tag.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
+		
+		key_info_map_display_sort.addEventListener('change', (event) => {display_storage_map(event.target, key_info_select, key_info_map_toggle_content.checked, key_info_map_display_sort, key_info_map_display)});
 	});
 
 	input.addEventListener('selectionchange', function(e){
@@ -1541,7 +1571,7 @@
 			})();
 		}
 
-		const rows = document.querySelector("table>tbody")?.rows;
+		const rows = document.querySelector('#'+OUTPUT_TABLE_ID+'>tbody')?.rows;
 		if (!rows)
 			return;
 
@@ -1565,7 +1595,7 @@
 	});
 
 	function display_storage_key(current_control, storage_section_select, storage_tag_select, sort_type_select, target_text_field) {
-		let new_text = '';
+		let new_html = '';
 
 		if (storage.sections.indexOf(storage_section_select.value) >= 0) {
 			let list_of_keys_to_sort = [];
@@ -1609,58 +1639,188 @@
 				return ((a.sort_by < b.sort_by) ? -1 : ((a.sort_by == b.sort_by) ? 0 : 1));
 			})
 			.forEach(item => {
-				let p = storage.pattern[item.pattern_index];
-				let shelf = '';
-
-				if (p.section == 'p') {
-					shelf = P_storage_relative_shelf_location_to_absolute(p.shelf);
-					if (shelf > P_SECTION_SHELF_NUMBERED_UNTIL) {
-						shelf = P_storage_format_relative_shelf_location(p.shelf);
-					} else {
-						shelf = shelf.toString().padStart(3,'0');
-					}
-				} else {
-					shelf = p.shelf.padStart(2,'0');
-				}
-
-				new_text += '<b>' + shelf + ':</b> ';
-
-				if (p.hasOwnProperty('start') && p.hasOwnProperty('end')) {
-					new_text += 
-						p.prefix.toUpperCase() + p.start.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>' + 
-						' - ' + 
-						p.prefix.toUpperCase() + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
-				} 
-				else if (p.hasOwnProperty('regex')) {
-					if (String(p.regex) == String(personal_regex))
-						new_text += 'indywidualne';
-					else 
-						new_text += 'zaczyna się od: ' + p.regex;
-				}
-				else if (p.hasOwnProperty('length_min') && p.hasOwnProperty('length_max')) {
-					if (p.length_min==shortened_values[0] && p.length_max==shortened_values[1])
-						new_text += 'skrócone';
-					else
-						new_text += 'długość: ' + p.length_min + '-' + p.length_max;
-				} 
-				else if (p.hasOwnProperty('prefix_start') && p.hasOwnProperty('prefix_end')) {
-					new_text += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
-				}
-				else {
-					if (p.hasOwnProperty('prefix'))
-						new_text += p.prefix.toUpperCase();
-
-					if (p.hasOwnProperty('tag'))
-						new_text += ' <i>' + p.tag + '</i>';
-				}
-
-				new_text += '<br>';
+				new_html += format_pattern(storage.pattern[item.pattern_index]) + '<br>';
 			});
 		}
 
-		target_text_field.innerHTML = new_text;
+		target_text_field.innerHTML = new_html;
+	}
+	
+	function display_storage_map(current_control, storage_section_select, show_shelf_content, sort_type_select, target_text_field) {
+		let key_info_map = document.getElementById('key_info_map');
+		if (!key_info_map)
+			return;
+		
+		if (storage.map.hasOwnProperty(storage_section_select.value)) {
+			key_info_map.style.display = 'block';
+			
+			const SPACE_BETWEEN_ID_AND_CONTENT_LIST = 5;
+			let patterns_formatted = {};
+			let new_html = '';
+			
+			if (show_shelf_content) {
+				storage.pattern.forEach(current_pattern => {
+					if (current_pattern.section == storage_section_select.value) {
+						if (!patterns_formatted.hasOwnProperty(current_pattern.shelf)) {
+							patterns_formatted[current_pattern.shelf] = [];
+						}
+						
+						patterns_formatted[current_pattern.shelf].push(format_pattern(current_pattern,0));
+					}
+				});
+			}
+			
+			new_html += '<table class="key_info"></thead>';
+		
+			switch(sort_type_select.value) {
+				case 'place': {
+					let places      = {};
+					let max_columns = 1;
+					
+					Object.keys(storage.map[storage_section_select.value]).forEach(shelf => {
+						if (is_numeric(shelf) || shelf=='entry_point') {
+							let current = storage.map[storage_section_select.value][shelf];
+							
+							if (shelf == 'entry_point') {
+								shelf = 'okno';
+							}
+							
+							if (places.hasOwnProperty(current)) {
+								places[current].push(shelf);
+								
+								if (places[current].length > max_columns) {
+									max_columns = places[current].length;
+								}
+							} else {
+								places[current] = [shelf];
+							}
+						}
+					});
+					
+					
+					new_html += '<tr><th>Miejsce</th>' + '<th>Półka</th>'.repeat(max_columns) + '</tr></thead><tbody>';
+
+					Object.keys(places).sort(function(a,b){
+						a = parseInt(a);
+						b = parseInt(b);
+						return a==b ? 0 : a>b ? -1 : 1;
+					}).forEach(place=>{
+						new_html += '<tr><td>' + place + '</td>';
+						
+						for (let i=0; i<max_columns; i++) {
+							new_html += '<td>'
+							contents = '';
+							
+							if (i < places[place].length) {
+								 new_html += (places[place][i]).padEnd(show_shelf_content ? SPACE_BETWEEN_ID_AND_CONTENT_LIST : 0,'\u00A0');
+								 
+								 if (show_shelf_content && patterns_formatted.hasOwnProperty([places[place][i]])) {
+									contents += patterns_formatted[places[place][i]].join(', ');
+								 }
+							}
+							
+							new_html += contents + '</td>'
+						}
+						
+						new_html += '</tr>';
+					});
+					
+					new_html += '</tbody></table>'
+				} break;
+				
+				case 'shelf': {
+					new_html += '<tr><th>Półka</th><th>Miejsce</th></thead></tbody>';
+					
+					Object.keys(storage.map[storage_section_select.value]).sort(function(a,b){
+						a = parseInt(a);
+						b = parseInt(b);
+						return a==b ? 0 : a<b ? -1 : 1;
+					}).forEach(shelf => {
+						if (is_numeric(shelf)) {
+							new_html += '<tr><td>' + shelf + '</td><td>' + storage.map[storage_section_select.value][shelf].toString().padEnd(show_shelf_content ? SPACE_BETWEEN_ID_AND_CONTENT_LIST : 0,'\u00A0');
+							
+							if (show_shelf_content && patterns_formatted.hasOwnProperty(shelf)) {
+								new_html += patterns_formatted[shelf].join(', ');
+							}
+
+							new_html += '</td></tr>';
+						}
+					});
+					
+					new_html += '</tbody></table>'
+				} break;
+			}
+			
+			target_text_field.innerHTML = new_html;
+		} else {
+			key_info_map.style.display = 'none';
+		}
+		
 	}
 
+	function format_pattern(p, verbose=true) {
+		let shelf  = '';
+		let output = '';
+
+		if (verbose) {
+			if (p.section == 'p') {
+				shelf = P_storage_relative_shelf_location_to_absolute(p.shelf);
+				if (shelf > P_SECTION_SHELF_NUMBERED_UNTIL) {
+					shelf = P_storage_format_relative_shelf_location(p.shelf);
+				} else {
+					shelf = shelf.toString().padStart(3,'0');
+				}
+			} else {
+				shelf = p.shelf.toString().padStart(2,'0');
+			}
+
+			output += '<b>' + shelf + ':</b> ';
+		}
+
+		if (p.hasOwnProperty('start') && p.hasOwnProperty('end')) {
+			if (verbose) {
+				output += 
+					p.prefix.toUpperCase() + p.start.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>' + 
+					' - ' + 
+					p.prefix.toUpperCase() + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
+			} else {
+				if (p.prefix != DEFAULT_PREFIX) {
+					output += p.prefix.toUpperCase();
+				}
+				
+				if (p.start == 1 && p.end==parseInt("".padStart(p.digits,'9'))) {
+					output += '<b>' + p.suffix.toUpperCase() + '</b>';
+				} else {
+					output += p.start.toString() + '-' + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
+				}
+			}
+		} 
+		else if (p.hasOwnProperty('regex')) {
+			if (String(p.regex) == String(personal_regex))
+				output += 'indywidualne';
+			else 
+				output += 'zaczyna się od: ' + p.regex;
+		}
+		else if (p.hasOwnProperty('length_min') && p.hasOwnProperty('length_max')) {
+			if (p.length_min==shortened_values[0] && p.length_max==shortened_values[1])
+				output += 'skrócone';
+			else
+				output += 'długość: ' + p.length_min + '-' + p.length_max;
+		} 
+		else if (p.hasOwnProperty('prefix_start') && p.hasOwnProperty('prefix_end')) {
+			output += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
+		}
+		else {
+			if (p.hasOwnProperty('prefix'))
+				output += p.prefix.toUpperCase();
+
+			if (p.hasOwnProperty('tag'))
+				output += ' <i>' + p.tag + '</i>';
+		}
+
+		return output;
+	}
+	
 	var drag_and_drop_field       = document.getElementById('draganddrop_field');
 	var drag_and_drop_last_target = null;
 
@@ -1810,7 +1970,7 @@
 
 					html_row += 
 						'<td ' + style + 'onclick="toggle_strike(this)">' + 
-						(shelf ? (shelf+': ') : '') +
+						(shelf ? ((is_numeric(shelf) ? shelf.padStart(2,'0') : shelf)+': ') : '') +
 						id +
 						(tags.length>0 ? (' <i>'+tags+'</i>') : '') +
 						(comments.length>0 ? (' <span style="font-size:x-small">'+comments+'</span>') : '') +
@@ -1842,7 +2002,7 @@
 		strike_list = new_strike_list;
 		localStorage.setItem('strike_list', JSON.stringify(strike_list));
 
-		return '<table><caption>' + 
+		return '<table id=\''+OUTPUT_TABLE_ID+'\'><caption>' + 
 			generate_file_name('. :','<span style="float:left">'+document.title+'</span>') + 
 			'</caption><thead><tr>' + html_head + '</tr></thead><tbody>' + 
 			html_rows + '</tbody><tfoot>' + html_foot + '</tfoot></table>' + html_p;
