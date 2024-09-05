@@ -151,13 +151,14 @@
 	const MAX_DIGITS = 5;
 	const CSV_IMPORT_DATA_FROM_COLUMN = 'Nr';
 	const OUTPUT_TABLE_ID = 'output_table';
+	const NON_MATCHING_SECTION_KEY = 'non_matching';
 
 	const STORAGE_SECTION_NAMES = {
 		'a': 'Szafa #1',
 		'b': 'Szafa #2',
 		'c': 'Szafa #3',
 		'p': 'Piwnica',
-		'non_matching': 'Nieznalezione',
+		[NON_MATCHING_SECTION_KEY]: 'Nieznalezione',
 	};
 
 	const RAW_STORAGE_KEY = `
@@ -747,10 +748,10 @@
 	`;
 
 	const P_SECTION_SHELF_NUMBERED_UNTIL = 360;
-	const personal_keyword = 'indywidualne';
-	const personal_regex = /^[a-zA-Z][0-9][a-zA-Z].+$/;
-	const shortened_keyword = 'skrócone';
-	const shortened_values = [3,4];
+	const PERSONAL_KEYWORD = 'indywidualne';
+	const PERSONAL_REGEX = /^[a-zA-Z][0-9][a-zA-Z].+$/;
+	const SHORTENED_KEYWORD = 'skrócone';
+	const SHORTENED_VALUES = [3,4];
 
 	var storage = raw_storage_key_to_array(RAW_STORAGE_KEY);
 	storage.map = raw_storage_map_to_array(RAW_STORAGE_MAP);
@@ -761,12 +762,8 @@
 	}
 
 	function raw_storage_key_to_array(input_text) {
-		function is_space(input_character) {
-			return /\s/.test(input_character);
-		}
-
 		function is_separator(input_character) {
-			return is_space(input_character) || input_character==':' || input_character=='-';
+			return input_character.trim()=='' || input_character==':' || input_character=='-';
 		}
 
 		let output = {
@@ -775,20 +772,20 @@
 			tags_section: {},
 			tags_local: [],
 		};
-		let defer_output = {
+		let output_deferred = {
 			pattern: [],
 		};
-		let tag_section = '';
-		const tag_keyword = 'tag:';
-		const defer_keyword = 'sprawdzaj_na_końcu';
-		const line_keywords = {
+		let tag_for_the_current_storage_section = '';
+		const TAG_KEYWORD = 'tag:';
+		const DEFER_KEYWORD = 'sprawdzaj_na_końcu';
+		const LINE_KEYWORDS = {
 			'tag':'tag:',
 			'defer':'sprawdzaj_na_końcu'
 		};
 
-		Object.keys(STORAGE_SECTION_NAMES).forEach(key=>{
-			if (key != 'non_matching')
-				output.tags_section[key] = [];
+		Object.keys(STORAGE_SECTION_NAMES).forEach(current_section_key=>{
+			if (current_section_key != NON_MATCHING_SECTION_KEY)
+				output.tags_section[current_section_key] = [];
 		});
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
@@ -796,144 +793,111 @@
 			if (line.length == 0)
 				return;
 
-			if (line.substring(0,line_keywords['tag'].length) == line_keywords['tag']) {
-				tag_section = line.substring(line_keywords['tag'].length);
+			if (line.substring(0,LINE_KEYWORDS['tag'].length) == LINE_KEYWORDS['tag']) {
+				tag_for_the_current_storage_section = line.substring(LINE_KEYWORDS['tag'].length);
 				return;
 			}
 
 			let i = 0;
 			while(i<line.length && !is_separator(line[i])) i++;
 
-			let section = 0;
-			let shelf = 0;
-
 			let j = 0;
 			while(j<i && !is_numeric(line[j])) j++;
 
-			section = line.substring(0,j);
-			shelf = line.substring(j,i);
+			let section = line.substring(0,j);
+			let shelf = line.substring(j,i);
 			
-			if (is_numeric(shelf)) {
+			if (is_numeric(shelf))
 				shelf = parseInt(shelf);
-			}
 			
-			if (!output.sections.includes(section)) {
+			if (!output.sections.includes(section))
 				output.sections.push(section);
-			}
 
 			while(i<line.length && is_separator(line[i])) i++;
-			let tokens = line.substr(i).split(/,/);
-			
-			function parse_range(input) {
-				let output = {};
+			let input_patterns = line.substr(i).split(/,/);
 
-				if (input.substring(input.length-1) == '*') {
-					output.prefix = input.substring(0,input.length-1);
-					return output;
-				}
-
-				if (input.substring(input.length-2) == '..') {
-					output.prefix_range = input.substring(0,input.length-2);
-					return output;
-				}
-
-				const length_keyword = 'length:';
-				if (input.substring(0,length_keyword.length) == length_keyword) {
-					let tokens = input.substring(length_keyword.length).split('-');
-					if (tokens.length > 0) {
-						output.length_min = parseInt(tokens[0]);
-						output.length_max = tokens.length>=2 ? parseInt(tokens[1]) : parseInt(tokens[0]);
-					}
-					return output;
-				}
-
-				const startswith_keyword = 'startswith:';
-				if (input.substring(0,startswith_keyword.length) == startswith_keyword) {
-					let total = '';
-					input.substring(startswith_keyword.length).toLowerCase().split('|').forEach(item => {
-						if (item == 'letter') {
-							total += '[a-zA-Z]';
-						} else
-							if (item == 'digit') {
-								total += '[0-9]';
-							}
-					});
-					output.regex = new RegExp('^' + total + '.+$', '');
-					return output;
-				}
-
-				if (input.substring(0,personal_keyword.length) == personal_keyword) {
-					output.regex = personal_regex;
-					return output;
-				}
-
-				if (input.substring(0,shortened_keyword.length) == shortened_keyword) {
-					output.length_min = shortened_values[0];
-					output.length_max = shortened_values[1];
-					return output;
-				}
-				
-				let parts = input.trim().split(/\s/);
-				output.prefix = parts.length>1 ? parts[0] : '';
-				output.number = '';
-				output.suffix = '';
-
-				let right = parts.length>1 ? parts[1] : parts[0];
-
-				parts = right.match(/[a-zA-Z]+|[0-9]+/g).forEach(item => {
-					if (is_numeric(item) && output.number.length==0)
-						output.number = item;
-					else 
-						if (!is_numeric(item) && output.suffix.length==0)
-							output.suffix = item;
-				});
-				
-				return output;
-			}
-
-			tokens.forEach(token => {
-				token = token.trim();
-				let tag_local = '';
+			input_patterns.forEach(input_pattern => {
+				input_pattern = input_pattern.trim();
+				let tag_for_the_current_line = '';
 				let defer = false;
 
-				Object.keys(line_keywords).forEach(key=>{
-					let keyword = line_keywords[key];
-					let start = token.indexOf(keyword);
+				// First cut off special options from the line
+				Object.keys(LINE_KEYWORDS).forEach(key=>{
+					let keyword = LINE_KEYWORDS[key];
+					let start = input_pattern.indexOf(keyword);
 					if (start > -1) {
-						let end = start + token.substring(start).search(/\s|$/);
-						let split = [token.substring(start,start+keyword.length), token.substring(start+keyword.length, end)];
-						token = token.substring(0,start).trim() + token.substring(end).trim();
+						let end = start + input_pattern.substring(start).search(/\s|$/);
+						let split = [input_pattern.substring(start,start+keyword.length), input_pattern.substring(start+keyword.length, end)];
+						input_pattern = input_pattern.substring(0,start).trim() + input_pattern.substring(end).trim();
 
 						switch(split[0]) {
-							case line_keywords['tag'] : {
-								tag_local = split[1];
+							case LINE_KEYWORDS['tag'] : {
+								tag_for_the_current_line = split[1];
 								output.tags_local.push({
 									'shelf'  : shelf,
 									'section': section,
-									'range'  : token.replace('*',''),
-									'name'   : tag_local
+									'range'  : input_pattern.replace('*',''),
+									'name'   : tag_for_the_current_line
 								});
 							}; break;
 
-							case line_keywords['defer'] : {
+							case LINE_KEYWORDS['defer'] : {
 								defer = true;
 							}; break;
 						}
 					}
 				});
 
-				if (token.length == 0)
+				if (input_pattern.length == 0)
 					return;
 
-				let range = token.split(/-/).map((x) => parse_range(x));
+				let range = input_pattern.split(/-/).map(input => {
+					let output = {};
+
+					if (input.substring(input.length-1) == '*') {
+						output.prefix = input.substring(0,input.length-1);
+						return output;
+					}
+
+					if (input.substring(input.length-2) == '..') {
+						output.prefix_range = input.substring(0,input.length-2);
+						return output;
+					}
+
+					if (input.substring(0,PERSONAL_KEYWORD.length) == PERSONAL_KEYWORD) {
+						output.regex = PERSONAL_REGEX;
+						return output;
+					}
+
+					if (input.substring(0,SHORTENED_KEYWORD.length) == SHORTENED_KEYWORD) {
+						output.length_min = SHORTENED_VALUES[0];
+						output.length_max = SHORTENED_VALUES[1];
+						return output;
+					}
+					
+					let tokens = input.trim().split(/\s/);
+					output.prefix = tokens.length>1 ? tokens[0] : '';
+					output.number = '';
+					output.suffix = '';
+
+					tokens.at(-1).match(/[a-zA-Z]+|[0-9]+/g).forEach(item => {
+						if (is_numeric(item) && output.number.length==0)
+							output.number = item;
+						else 
+							if (!is_numeric(item) && output.suffix.length==0)
+								output.suffix = item;
+					});
+					
+					return output;
+				});
 
 				let pattern = {
 					section: section,
 					shelf: shelf,					
 				};
 
-				if (tag_section != '' || tag_local != '') {
-					pattern.tag = tag_local!='' ? tag_local : tag_section;
+				if (tag_for_the_current_storage_section != '' || tag_for_the_current_line != '') {
+					pattern.tag = tag_for_the_current_line!='' ? tag_for_the_current_line : tag_for_the_current_storage_section;
 				}
 
 				if (range.length > 1 && range[1].hasOwnProperty('prefix') && range[1].prefix!='') {
@@ -964,7 +928,7 @@
 							pattern.end = parseInt('9'.repeat(pattern.digits));
 						} else
 							// input is letters (e.g AA)
-							if (pattern.suffix != '') {
+							if (pattern.suffix != '' && pattern.suffix.length<MAX_DIGITS) {
 								pattern.start = 1;
 								pattern.end = parseInt('9'.repeat(MAX_DIGITS - pattern.suffix.length));
 								pattern.digits = pattern.end.toString().length;
@@ -989,15 +953,15 @@
 					pattern.regex = range[0].regex;
 				}
 
-				(defer ? defer_output : output).pattern.push(pattern);
+				(defer ? output_deferred : output).pattern.push(pattern);
 
-				if (tag_section.length > 0 && !output.tags_section[section].includes(tag_section)) {
-					output.tags_section[section].push(tag_section);
+				if (tag_for_the_current_storage_section.length > 0 && !output.tags_section[section].includes(tag_for_the_current_storage_section)) {
+					output.tags_section[section].push(tag_for_the_current_storage_section);
 				}
 			});
 		});
 
-		defer_output.pattern.forEach(pattern => {
+		output_deferred.pattern.forEach(pattern => {
 			output.pattern.push(pattern);
 		})
 
@@ -1007,41 +971,42 @@
 	function raw_storage_map_to_array(input_text) {
 		let output = {};
 		let section = '';
-		let lower = 0;
-		let higher = 0;
-		const entry_keyword = 'entry:';
+		let shelves_below_the_entry_point = 0;
+		let shelves_above_the_entry_point = 0;
+		const ENTRY_KEYWORD = 'entry:';
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
 			line = line.trim();
 			if (line.length == 0)
 				return;
 
+			// Start of section
 			let colon = line.indexOf(':');
 			if (colon >= 0) {
-				if (line.substring(0,entry_keyword.length) == entry_keyword) {
-					output[section].entry_point = parseInt(line.substring(entry_keyword.length));
+				if (line.substring(0,ENTRY_KEYWORD.length) == ENTRY_KEYWORD) {
+					output[section].entry_point = parseInt(line.substring(ENTRY_KEYWORD.length));
 				} else {
 					if (Object.keys(STORAGE_SECTION_NAMES).includes(line.substring(0,colon))) {
 						section = line.substring(0,colon);
 						output[section] = {entry_point:0, entry_is_up:false};
-						lower = 0;
-						higher = 0;
+						shelves_below_the_entry_point = 0;
+						shelves_above_the_entry_point = 0;
 					}
 				}
+			// Shelf
 			} else {
 				tokens = line.split(/[\s]+/);
 				if (tokens.length >= 2 && is_numeric(tokens[0]) && is_numeric(tokens[1])) {
-					let shelf = is_numeric(tokens[0]) ? parseInt(tokens[0]) : tokens[0];
+					let shelf    = is_numeric(tokens[0]) ? parseInt(tokens[0]) : tokens[0];
 					let position = parseInt(tokens[1]);
 					output[section][shelf] = position;
 
-					if (position >= output[section].entry_point) {
-						higher++;
-					} else {
-						lower++;
-					}
-
-					output[section].entry_is_up = lower > higher;
+					if (position >= output[section].entry_point)
+						shelves_above_the_entry_point++;
+					else
+						shelves_below_the_entry_point++;
+						
+					output[section].entry_is_up = shelves_below_the_entry_point > shelves_above_the_entry_point;
 				}
 			}
 		});
@@ -1385,23 +1350,23 @@
 			return 0;
 		}
 
-		const number_of_shelves_on_one_cabinet_side = 24;
-		const columns = ['A','B','C','D'];
-		const first_shelf = 1;
+		const NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE = 24;
+		const COLUMNS = ['A','B','C','D'];
+		const FIRST_SHELF = 1;
 
 		let cabinet = parseInt(input[0]);
 		let side    = input[1].toUpperCase();
-		let column  = columns.findIndex(x => x==input[2].toUpperCase());
+		let column  = COLUMNS.findIndex(x => x==input[2].toUpperCase());
 		let row     = parseInt(input[3]);
 
 		let number_of_cabinet_sides = cabinet * 2 - (side=='L' ? 1 : 0);
 
 		// on the left side of a cabinet we start counting columns from the end
 		if (side == 'L') {
-			column = columns.length - 1 - column;
+			column = COLUMNS.length - 1 - column;
 		}
 
-		return first_shelf + number_of_shelves_on_one_cabinet_side*(number_of_cabinet_sides-1) + columns.length*(row-1) + column;
+		return FIRST_SHELF + NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*(number_of_cabinet_sides-1) + COLUMNS.length*(row-1) + column;
 	}
 
 	function P_storage_relative_shelf_location_to_absolute_sort(input) {
@@ -1413,20 +1378,20 @@
 			return 0;
 		}
 
-		const number_of_shelves_on_one_cabinet_side = 24;
-		const columns = ['A','B','C','D'];
-		const first_shelf = 1;
+		const NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE = 24;
+		const COLUMNS = ['A','B','C','D'];
+		const FIRST_SHELF = 1;
 
 		let cabinet = parseInt(input[0]);
 		let side    = input[1].toUpperCase();
-		let column  = columns.length - 1 - columns.findIndex(x => x==input[2].toUpperCase()); //always reverse column index because we start with the farthest columns
+		let column  = COLUMNS.length - 1 - COLUMNS.findIndex(x => x==input[2].toUpperCase()); //always reverse column index because we start with the farthest columns
 		let row     = parseInt(input[3]);
 
 		// in one aisle we treat both sides as a single table (4 columns by 12 rows)
-		let number_of_rows_in_this_aisle = number_of_shelves_on_one_cabinet_side * 2 / columns.length;
+		let number_of_rows_in_this_aisle = NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE * 2 / COLUMNS.length;
 
 		let aisle = cabinet - (side=='L' ? 1 : 0);
-		let first_shelf_in_this_aisle = first_shelf;
+		let first_shelf_in_this_aisle = FIRST_SHELF;
 		
 		if (aisle == 0) {
 			number_of_rows_in_this_aisle = 6; // first aisle has only one side (4 columns by 6 rows)
@@ -1437,9 +1402,9 @@
 			}
 
 			// sum shelves in the previous aisles
-			// first aisle has only 24 shelves (not 48) so we start with (first_shelf + number_of_shelves_on_one_cabinet_side)=25
+			// first aisle has only 24 shelves (not 48) so we start with (FIRST_SHELF + NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE)=25
 			// and then multiply number of shelves in an aisle (24*2=48) by all the remaining aisles (aisle-1)
-			first_shelf_in_this_aisle = first_shelf + number_of_shelves_on_one_cabinet_side + (number_of_shelves_on_one_cabinet_side*2)*(aisle-1);
+			first_shelf_in_this_aisle = FIRST_SHELF + NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE + (NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*2)*(aisle-1);
 		}
 
 		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
@@ -1796,13 +1761,13 @@
 			}
 		} 
 		else if (p.hasOwnProperty('regex')) {
-			if (String(p.regex) == String(personal_regex))
+			if (String(p.regex) == String(PERSONAL_REGEX))
 				output += 'indywidualne';
 			else 
 				output += 'zaczyna się od: ' + p.regex;
 		}
 		else if (p.hasOwnProperty('length_min') && p.hasOwnProperty('length_max')) {
-			if (p.length_min==shortened_values[0] && p.length_max==shortened_values[1])
+			if (p.length_min==SHORTENED_VALUES[0] && p.length_max==SHORTENED_VALUES[1])
 				output += 'skrócone';
 			else
 				output += 'długość: ' + p.length_min + '-' + p.length_max;
@@ -2035,7 +2000,7 @@
 		let excel_rows = [[]];
 		let columns = [];
 		let item_count_in_largest_section = 0;
-		const min_width = 7;
+		const MIN_WIDTH = 7;
 
 		sections_with_items.forEach(section => {
 			excel_rows[0].push({
@@ -2046,7 +2011,7 @@
 			});
 
 			let width = section.length + 1;
-			columns.push({width:width < min_width ? min_width : width});
+			columns.push({width:width < MIN_WIDTH ? MIN_WIDTH : width});
 
 			if (sorted_numbers.sections[section].length > item_count_in_largest_section) {
 				item_count_in_largest_section = sorted_numbers.sections[section].length;
