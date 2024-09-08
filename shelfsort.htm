@@ -8,6 +8,7 @@
 	<style>
 	table {
   		border-collapse: collapse;
+		margin-top: 1em;
 	}
 	table caption {
 		font-size: x-small;
@@ -31,7 +32,7 @@
 		background-color: #e4e4e4;
 	}
 	tbody tr:hover {
-		background-color: #acacac;
+		background-color: #66e66d;
 	}
 	tfoot {
 		text-align: right;
@@ -130,7 +131,7 @@
 				</select>
 			</div>
 			
-			<p class="key_info" id="key_info_display"></p>
+			<div class="key_info" id="key_info_display"></div>
 			
 			<div id="key_info_map">
 				<h3>Mapa szafy:</h3>
@@ -147,8 +148,11 @@
 	<div id="output"></div>
 
 	<script>
-	const DEFAULT_PREFIX = 'aa';
-	const MAX_DIGITS = 5;
+	const DEFAULT_PREFIX = 'bi';
+	const INPUT_ID_MAX_LEN = 8;
+	const INPUT_ID_MAX_DIGITS = 5;
+	const INPUT_ID_PREFIX_MAX_LEN = 3;
+	const INPUT_ID_SUFFIX_MAX_LEN = 2;
 	const CSV_IMPORT_DATA_FROM_COLUMN = 'Nr';
 	const OUTPUT_TABLE_ID = 'output_table';
 	const NON_MATCHING_SECTION_KEY = 'non_matching';
@@ -295,8 +299,8 @@
 	C25 FX, GX, 0-600HX
 	C26 AA 001R-999R, AA 0-999S, AA 001L, 601HX
 
-	A42 length:4
-	A42 startswith:letter|digit|letter
+	A42 skrócone sprawdzaj_na_końcu
+	A42 indywidualne
 
 	P1PA1 AAA 0005-AAA 3647
 	P1PB1 AAA 3652-AAA 6715
@@ -852,6 +856,10 @@
 					return;
 
 				let range = input_pattern.split(/-/).map(input => {
+					input = input.trim();
+					if (input.length == 0)
+						return;
+						
 					let output = {};
 
 					if (input.substring(input.length-1) == '*') {
@@ -891,6 +899,9 @@
 					return output;
 				});
 
+				if (!range)
+					return;
+					
 				let pattern = {
 					section: section,
 					shelf: shelf,					
@@ -928,9 +939,9 @@
 							pattern.end = parseInt('9'.repeat(pattern.digits));
 						} else
 							// input is letters (e.g AA)
-							if (pattern.suffix != '' && pattern.suffix.length<MAX_DIGITS) {
+							if (pattern.suffix != '' && pattern.suffix.length<INPUT_ID_MAX_DIGITS) {
 								pattern.start = 1;
-								pattern.end = parseInt('9'.repeat(MAX_DIGITS - pattern.suffix.length));
+								pattern.end = parseInt('9'.repeat(INPUT_ID_MAX_DIGITS - pattern.suffix.length));
 								pattern.digits = pattern.end.toString().length;
 							}
 				}
@@ -1084,6 +1095,9 @@
 		});
 
 		function compare_letters(start, target, end) {
+			if (target == DEFAULT_PREFIX)
+				return false;
+			
 			if (target == start || target == end)
 				return true;
 
@@ -1100,9 +1114,6 @@
 				suffix: '',
 			};
 
-			const PREFIX_MAX_LEN = 3;
-			const SUFFIX_MAX_LEN = 2;
-
 			let i = 0;
 
 			if (custom_prefix.length > 0) {
@@ -1110,12 +1121,12 @@
 					i = custom_prefix.length;
 				}
 			} else {
-				while (i<input.length && !is_numeric(input[i]) && i<PREFIX_MAX_LEN) i++;
+				while (i<input.length && !is_numeric(input[i]) && i<INPUT_ID_PREFIX_MAX_LEN) i++;
 			}
 			output.prefix = input.substring(0,i);
 
 			let j = input.length - 1;
-			while (i>=0 && !is_numeric(input[j]) && j>input.length-1-SUFFIX_MAX_LEN) j--;
+			while (i>=0 && !is_numeric(input[j]) && j>input.length-1-INPUT_ID_SUFFIX_MAX_LEN) j--;
 			output.suffix = j<input.length-1 ? input.substring(j+1) : '';
 
 			let temp = input.substring(i, j+1);
@@ -1560,7 +1571,7 @@
 	});
 
 	function display_storage_key(current_control, storage_section_select, storage_tag_select, sort_type_select, target_text_field) {
-		let new_html = '';
+		let new_html = '<table><thead><tr><th>Półka</th><th>Zawartość</th></tr><tbody>';
 
 		if (storage.sections.indexOf(storage_section_select.value) >= 0) {
 			let list_of_keys_to_sort = [];
@@ -1604,11 +1615,12 @@
 				return ((a.sort_by < b.sort_by) ? -1 : ((a.sort_by == b.sort_by) ? 0 : 1));
 			})
 			.forEach(item => {
-				new_html += format_pattern(storage.pattern[item.pattern_index]) + '<br>';
+				let formatted = format_pattern(storage.pattern[item.pattern_index])
+				new_html += '<tr><td>'+formatted.shelf+'</td><td>'+formatted.content+'</td></tr>';
 			});
 		}
 
-		target_text_field.innerHTML = new_html;
+		target_text_field.innerHTML = new_html + '</tbody></table>';
 	}
 	
 	function display_storage_map(current_control, storage_section_select, show_shelf_content, sort_type_select, target_text_field) {
@@ -1630,7 +1642,7 @@
 							patterns_formatted[current_pattern.shelf] = [];
 						}
 						
-						patterns_formatted[current_pattern.shelf].push(format_pattern(current_pattern,0));
+						patterns_formatted[current_pattern.shelf].push(format_pattern(current_pattern,0).content);
 					}
 				});
 			}
@@ -1725,62 +1737,60 @@
 
 	function format_pattern(p, verbose=true) {
 		let shelf  = '';
-		let output = '';
+		let output = {shelf:'',content:''};
 
 		if (verbose) {
 			if (p.section == 'p') {
 				shelf = P_storage_relative_shelf_location_to_absolute(p.shelf);
 				if (shelf > P_SECTION_SHELF_NUMBERED_UNTIL) {
-					shelf = P_storage_format_relative_shelf_location(p.shelf);
+					output.shelf = P_storage_format_relative_shelf_location(p.shelf);
 				} else {
-					shelf = shelf.toString().padStart(3,'0');
+					output.shelf = shelf.toString().padStart(3,'0');
 				}
 			} else {
-				shelf = p.shelf.toString().padStart(2,'0');
+				output.shelf = p.shelf.toString().padStart(2,'0');
 			}
-
-			output += '<b>' + shelf + ':</b> ';
 		}
 
 		if (p.hasOwnProperty('start') && p.hasOwnProperty('end')) {
 			if (verbose) {
-				output += 
+				output.content += 
 					p.prefix.toUpperCase() + p.start.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>' + 
 					' - ' + 
 					p.prefix.toUpperCase() + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
 			} else {
 				if (p.prefix != DEFAULT_PREFIX) {
-					output += p.prefix.toUpperCase();
+					output.content += p.prefix.toUpperCase();
 				}
 				
 				if (p.start == 1 && p.end==parseInt("".padStart(p.digits,'9'))) {
-					output += '<b>' + p.suffix.toUpperCase() + '</b>';
+					output.content += '<b>' + p.suffix.toUpperCase() + '</b>';
 				} else {
-					output += p.start.toString() + '-' + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
+					output.content += p.start.toString() + '-' + p.end.toString().padStart(p.digits,'0') + '<b>' + p.suffix.toUpperCase() + '</b>';
 				}
 			}
 		} 
 		else if (p.hasOwnProperty('regex')) {
 			if (String(p.regex) == String(PERSONAL_REGEX))
-				output += 'indywidualne';
+				output.content += 'indywidualne';
 			else 
-				output += 'zaczyna się od: ' + p.regex;
+				output.content += 'zaczyna się od: ' + p.regex;
 		}
 		else if (p.hasOwnProperty('length_min') && p.hasOwnProperty('length_max')) {
 			if (p.length_min==SHORTENED_VALUES[0] && p.length_max==SHORTENED_VALUES[1])
-				output += 'skrócone';
+				output.content += 'skrócone';
 			else
-				output += 'długość: ' + p.length_min + '-' + p.length_max;
+				output.content += 'długość: ' + p.length_min + '-' + p.length_max;
 		} 
 		else if (p.hasOwnProperty('prefix_start') && p.hasOwnProperty('prefix_end')) {
-			output += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
+			output.content += p.prefix_start.toUpperCase() + '... - ' + p.prefix_end.toUpperCase();
 		}
 		else {
 			if (p.hasOwnProperty('prefix'))
-				output += p.prefix.toUpperCase();
+				output.content += p.prefix.toUpperCase();
 
 			if (p.hasOwnProperty('tag'))
-				output += ' <i>' + p.tag + '</i>';
+				output.content += ' <i>' + p.tag + '</i>';
 		}
 
 		return output;
@@ -1916,13 +1926,14 @@
 
 			sections_with_items.forEach(section => {
 				if (sorted_numbers.sections[section] && sorted_numbers.sections[section][row]) {
-					let shelf    = sorted_numbers.sections[section][row].shelf ? sorted_numbers.sections[section][row].shelf : '';
-					let id       = sorted_numbers.sections[section][row].id ? sorted_numbers.sections[section][row].id : sorted_numbers.sections[section][row]; //match is an object, notmatching is a string
-					let tags     = sorted_numbers.sections[section][row].tags ? sorted_numbers.sections[section][row].tags.join(' ') : '';
-					let comments = sorted_numbers.sections[section][row].comments ? sorted_numbers.sections[section][row].comments.join(' ') : '';
+					let shelf     = sorted_numbers.sections[section][row].shelf ? sorted_numbers.sections[section][row].shelf : '';
+					let shelf_pad = is_numeric(shelf) ? shelf.padStart(2,'0') : shelf;
+					let id        = sorted_numbers.sections[section][row].id ? sorted_numbers.sections[section][row].id : sorted_numbers.sections[section][row]; //match is an object, notmatching is a string
+					let tags      = sorted_numbers.sections[section][row].tags ? sorted_numbers.sections[section][row].tags.join(' ') : '';
+					let comments  = sorted_numbers.sections[section][row].comments ? sorted_numbers.sections[section][row].comments.join(' ') : '';
 
 					let text_without_comment = 
-						(shelf ? (shelf+': ') : '') +
+						(shelf ? (shelf_pad+': ') : '') +
 						id +
 						(tags.length>0 ? (' '+tags) : '');
 
@@ -1935,7 +1946,7 @@
 
 					html_row += 
 						'<td ' + style + 'onclick="toggle_strike(this)">' + 
-						(shelf ? ((is_numeric(shelf) ? shelf.padStart(2,'0') : shelf)+': ') : '') +
+						(shelf ? shelf_pad+': ' : '') +
 						id +
 						(tags.length>0 ? (' <i>'+tags+'</i>') : '') +
 						(comments.length>0 ? (' <span style="font-size:x-small">'+comments+'</span>') : '') +
