@@ -751,7 +751,13 @@
 	29     87
 	`;
 
-	const P_SECTION_SHELF_NUMBERED_UNTIL = 360;
+	const P_SECTION_SHELVES_NUMBERED_UNTIL = 360;
+	const P_SECTION_SHELF_REGEX = /(?<id>[0-9]+)(?<side>[a-z])(?<column>[a-z])(?<row>[0-9])/;
+	const P_SECTION_SHELF_REGEX_GRP_CNT = P_SECTION_SHELF_REGEX.toString().split("?").length-1;
+	const P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE = 24
+	const P_SECTION_FIRST_SHELF = 1
+	const P_SECTION_COLUMNS = ['a','b','c','d'];
+	
 	const PERSONAL_KEYWORD = 'indywidualne';
 	const PERSONAL_REGEX = /^[a-zA-Z][0-9][a-zA-Z].+$/;
 	const SHORTENED_KEYWORD = 'skrócone';
@@ -1280,15 +1286,13 @@
 				
 				shelves.forEach(shelf => {
 					initial_list[section][shelf].forEach(item => {
-						let shelf_name = section=='p' ? P_storage_relative_shelf_location_to_absolute(shelf) : shelf;
-
 						if (initial_list.last_item.section==section && initial_list.last_item.shelf==shelf && initial_list.last_item.text==item.text) {
 							output.last_item.section = section;
 							output.last_item.index   = output.sections[section].length;
 						}
 
 						output.sections[section].push({
-							shelf: shelf_name,
+							shelf: shelf,
 							id: item.tokens[0],
 							tags: item.tokens[1],
 							comments: item.tokens[2]
@@ -1344,12 +1348,18 @@
 	}
 
 	function P_storage_format_relative_shelf_location(input) {
-		if (input.length < 4) return '';
-		let column = ['a','b','c','d'].findIndex(x => x==input[2].toLowerCase()) + 1;
-		return 'Szafa #' + input[0] + ' ' +
-			(input[1].toUpperCase()=='L'?'lewa':'prawa') + 
-			' rząd ' + input[3] +
-			' kol ' + column;
+		let m = input.toLowerCase().match(P_SECTION_SHELF_REGEX);
+		if (!m)
+			return;
+		let cabinet = m.groups;
+		
+		if (cabinet.length < P_SECTION_SHELF_REGEX_GRP_CNT) 
+			return '';
+			
+		return 'Szafa #' + cabinet.id + ' ' +
+			(cabinet.side=='l' ? 'lewa' : 'prawa') + 
+			' rząd ' + cabinet.row +
+			' kol ' + (P_SECTION_COLUMNS.findIndex(x => x==cabinet.column) + 1);
 	}
 	
 	function P_storage_relative_shelf_location_to_absolute(input) {
@@ -1357,27 +1367,23 @@
 		Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
 		Shelves are numbered left to right, from the top row to bottom
 		*/
-		if (input.length < 4) {
-			return 0;
-		}
+		let m = input.toLowerCase().match(P_SECTION_SHELF_REGEX);
+		if (!m)
+			return;
+		let cabinet = m.groups;
+		
+		if (cabinet.length < P_SECTION_SHELF_REGEX_GRP_CNT) 
+			return '';
 
-		const NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE = 24;
-		const COLUMNS = ['A','B','C','D'];
-		const FIRST_SHELF = 1;
-
-		let cabinet = parseInt(input[0]);
-		let side    = input[1].toUpperCase();
-		let column  = COLUMNS.findIndex(x => x==input[2].toUpperCase());
-		let row     = parseInt(input[3]);
-
-		let number_of_cabinet_sides = cabinet * 2 - (side=='L' ? 1 : 0);
+		let column = P_SECTION_COLUMNS.findIndex(x => x==cabinet.column);
+		let number_of_cabinet_sides = parseInt(cabinet.id) * 2 - (cabinet.side=='l' ? 1 : 0);
 
 		// on the left side of a cabinet we start counting columns from the end
-		if (side == 'L') {
-			column = COLUMNS.length - 1 - column;
+		if (cabinet.side == 'l') {
+			column = P_SECTION_COLUMNS.length - 1 - column;
 		}
 
-		return FIRST_SHELF + NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*(number_of_cabinet_sides-1) + COLUMNS.length*(row-1) + column;
+		return P_SECTION_FIRST_SHELF + P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*(number_of_cabinet_sides-1) + P_SECTION_COLUMNS.length*(parseInt(cabinet.row)-1) + column;
 	}
 
 	function P_storage_relative_shelf_location_to_absolute_sort(input) {
@@ -1385,37 +1391,35 @@
 		Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
 		Shelves are numbered top to bottom, starting from the farthest columns (counting on both sides of the aisle) to the nearest
 		*/
-		if (input.length < 4) {
-			return 0;
-		}
+		let m = input.toLowerCase().match(P_SECTION_SHELF_REGEX);
+		if (!m)
+			return;
+		let cabinet = m.groups;
+		
+		if (cabinet.length < P_SECTION_SHELF_REGEX_GRP_CNT) 
+			return '';
 
-		const NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE = 24;
-		const COLUMNS = ['A','B','C','D'];
-		const FIRST_SHELF = 1;
-
-		let cabinet = parseInt(input[0]);
-		let side    = input[1].toUpperCase();
-		let column  = COLUMNS.length - 1 - COLUMNS.findIndex(x => x==input[2].toUpperCase()); //always reverse column index because we start with the farthest columns
-		let row     = parseInt(input[3]);
+		let column = P_SECTION_COLUMNS.length - 1 - P_SECTION_COLUMNS.findIndex(x => x==cabinet.column); //always reverse column index because we start with the farthest columns
+		let row    = parseInt(cabinet.row);
 
 		// in one aisle we treat both sides as a single table (4 columns by 12 rows)
-		let number_of_rows_in_this_aisle = NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE * 2 / COLUMNS.length;
+		let number_of_rows_in_this_aisle = P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE * 2 / P_SECTION_COLUMNS.length;
 
-		let aisle = cabinet - (side=='L' ? 1 : 0);
-		let first_shelf_in_this_aisle = FIRST_SHELF;
+		let aisle = parseInt(cabinet.id) - (cabinet.side=='l' ? 1 : 0);
+		let first_shelf_in_this_aisle = P_SECTION_FIRST_SHELF;
 		
 		if (aisle == 0) {
 			number_of_rows_in_this_aisle = 6; // first aisle has only one side (4 columns by 6 rows)
 		} else {
 			// left side of the next cabinet counts as rows 7-12
-			if (side == 'L') {
+			if (cabinet.side == 'l') {
 				row += 6;
 			}
 
 			// sum shelves in the previous aisles
-			// first aisle has only 24 shelves (not 48) so we start with (FIRST_SHELF + NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE)=25
+			// first aisle has only 24 shelves (not 48) so we start with (P_SECTION_FIRST_SHELF + P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE)=25
 			// and then multiply number of shelves in an aisle (24*2=48) by all the remaining aisles (aisle-1)
-			first_shelf_in_this_aisle = FIRST_SHELF + NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE + (NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*2)*(aisle-1);
+			first_shelf_in_this_aisle = P_SECTION_FIRST_SHELF + P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE + (P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*2)*(aisle-1);
 		}
 
 		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
@@ -1742,7 +1746,7 @@
 		if (verbose) {
 			if (p.section == 'p') {
 				shelf = P_storage_relative_shelf_location_to_absolute(p.shelf);
-				if (shelf > P_SECTION_SHELF_NUMBERED_UNTIL) {
+				if (shelf > P_SECTION_SHELVES_NUMBERED_UNTIL) {
 					output.shelf = P_storage_format_relative_shelf_location(p.shelf);
 				} else {
 					output.shelf = shelf.toString().padStart(3,'0');
@@ -1926,7 +1930,13 @@
 
 			sections_with_items.forEach(section => {
 				if (sorted_numbers.sections[section] && sorted_numbers.sections[section][row]) {
-					let shelf     = sorted_numbers.sections[section][row].shelf ? sorted_numbers.sections[section][row].shelf : '';
+					let shelf = sorted_numbers.sections[section][row].shelf ? sorted_numbers.sections[section][row].shelf : '';
+					
+					if (section == 'p') {
+						let shelf_num = P_storage_relative_shelf_location_to_absolute(shelf);
+						shelf = shelf_num <= P_SECTION_SHELVES_NUMBERED_UNTIL ? shelf_num.toString().padStart(3,'0') : P_storage_format_relative_shelf_location(shelf);
+					}
+					
 					let shelf_pad = is_numeric(shelf) ? shelf.padStart(2,'0') : shelf;
 					let id        = sorted_numbers.sections[section][row].id ? sorted_numbers.sections[section][row].id : sorted_numbers.sections[section][row]; //match is an object, notmatching is a string
 					let tags      = sorted_numbers.sections[section][row].tags ? sorted_numbers.sections[section][row].tags.join(' ') : '';
