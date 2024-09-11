@@ -148,7 +148,7 @@
 	<div id="output"></div>
 
 	<script>
-	const DEFAULT_PREFIX = 'bi';
+	const DEFAULT_PREFIX = 'aa';
 	const INPUT_ID_MAX_LEN = 8;
 	const INPUT_ID_MAX_DIGITS = 5;
 	const INPUT_ID_PREFIX_MAX_LEN = 3;
@@ -166,7 +166,7 @@
 	};
 
 	const RAW_STORAGE_KEY = `
-	A17 - AA 30915 - AA 38199 
+	A17 - AA 29915 - AA 37199 
 	A19 - AA 38200 - AA 43899 
 	A20 - AA 43900 - AA 49799 
 	A21 - AA 49800 - AA 55399 
@@ -1351,8 +1351,8 @@
 		let m = input.toLowerCase().match(P_SECTION_SHELF_REGEX);
 		if (!m)
 			return;
+			
 		let cabinet = m.groups;
-		
 		if (cabinet.length < P_SECTION_SHELF_REGEX_GRP_CNT) 
 			return '';
 			
@@ -1364,24 +1364,37 @@
 	
 	function P_storage_relative_shelf_location_to_absolute(input) {
 		/*
-		Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
+		Convert relative shelf location (cabinet number, cabinet side, column number, row number) to a shelf number
 		Shelves are numbered left to right, from the top row to bottom
+		Example: for input 2LB2 output should be 54
+		
+		Graphical representation:
+		                  Cabinet #1                           Cabinet #2
+		          left side   | right side             left side   | right side
+		          01 02 03 04 | 25 26 27 28            49 50 51 52 | 73 74 75 76
+		          05 06 07 08 | 29 30 31 32            53 54 55 56 | 77 78 79 80
+		          09 10 11 12 | 33 34 35 36            57 58 59 60 | 81 82 83 84
+		          13 14 15 16 | 37 38 39 40            61 62 63 64 | 85 86 87 88
+		          17 18 19 20 | 41 42 43 44            65 66 67 68 | 89 90 91 92
+		          21 22 23 24 | 45 46 47 48            69 70 71 72 | 93 94 95 96
+		aisle #1                             aisle #2
 		*/
+		
 		let m = input.toLowerCase().match(P_SECTION_SHELF_REGEX);
 		if (!m)
-			return;
+			return 0;
+			
 		let cabinet = m.groups;
-		
 		if (cabinet.length < P_SECTION_SHELF_REGEX_GRP_CNT) 
-			return '';
+			return 0;
 
 		let column = P_SECTION_COLUMNS.findIndex(x => x==cabinet.column);
-		let number_of_cabinet_sides = parseInt(cabinet.id) * 2 - (cabinet.side=='l' ? 1 : 0);
-
+		
 		// on the left side of a cabinet we start counting columns from the end
-		if (cabinet.side == 'l') {
+		if (cabinet.side == 'l')
 			column = P_SECTION_COLUMNS.length - 1 - column;
-		}
+
+		let number_of_cabinet_sides = parseInt(cabinet.id) * 2 - (cabinet.side=='l' ? 1 : 0);
 
 		return P_SECTION_FIRST_SHELF + P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*(number_of_cabinet_sides-1) + P_SECTION_COLUMNS.length*(parseInt(cabinet.row)-1) + column;
 	}
@@ -1390,19 +1403,30 @@
 		/*
 		Convert shelf relative location (cabinet number, cabinet side, column number, row number) to a shelf number
 		Shelves are numbered top to bottom, starting from the farthest columns (counting on both sides of the aisle) to the nearest
+		
+		Graphical representation:
+		                  Cabinet #1                           Cabinet #2
+		          left side   | right side             left side   | right side
+		          01 07 13 19 | 61 49 37 25            31 43 55 67 | 109 097 85 73
+		          02 08 14 20 | 62 50 38 26            32 44 56 68 | 110 098 86 74
+		          03 09 15 21 | 63 51 39 27            33 45 57 69 | 111 099 87 75
+		          04 10 16 22 | 64 52 40 28            34 46 58 70 | 112 100 88 76
+		          05 11 17 23 | 65 53 41 29            35 47 59 71 | 113 101 89 77
+		          06 12 18 24 | 66 54 42 30            36 48 60 72 | 114 102 90 78
+		aisle #1                             aisle #2
 		*/
 		let m = input.toLowerCase().match(P_SECTION_SHELF_REGEX);
 		if (!m)
-			return;
+			return 0;
+			
 		let cabinet = m.groups;
-		
 		if (cabinet.length < P_SECTION_SHELF_REGEX_GRP_CNT) 
-			return '';
+			return 0;
 
-		let column = P_SECTION_COLUMNS.length - 1 - P_SECTION_COLUMNS.findIndex(x => x==cabinet.column); //always reverse column index because we start with the farthest columns
+		let column = P_SECTION_COLUMNS.length - 1 - P_SECTION_COLUMNS.findIndex(x => x==cabinet.column); // always reverse column index because we start with the farthest columns
 		let row    = parseInt(cabinet.row);
 
-		// in one aisle we treat both sides as a single table (4 columns by 12 rows)
+		// in a single aisle we treat both sides as a single table (4 columns by 12 rows)
 		let number_of_rows_in_this_aisle = P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE * 2 / P_SECTION_COLUMNS.length;
 
 		let aisle = parseInt(cabinet.id) - (cabinet.side=='l' ? 1 : 0);
@@ -1412,9 +1436,8 @@
 			number_of_rows_in_this_aisle = 6; // first aisle has only one side (4 columns by 6 rows)
 		} else {
 			// left side of the next cabinet counts as rows 7-12
-			if (cabinet.side == 'l') {
+			if (cabinet.side == 'l')
 				row += 6;
-			}
 
 			// sum shelves in the previous aisles
 			// first aisle has only 24 shelves (not 48) so we start with (P_SECTION_FIRST_SHELF + P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE)=25
@@ -1422,7 +1445,7 @@
 			first_shelf_in_this_aisle = P_SECTION_FIRST_SHELF + P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE + (P_SECTION_NUMBER_OF_SHELVES_ON_ONE_CABINET_SIDE*2)*(aisle-1);
 		}
 
-		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);    
+		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);
 	}
 
 	input.addEventListener('input', function(e){	
@@ -2004,71 +2027,6 @@
 		return prefix + yyyy + punctuation[0] + mm + punctuation[0] + dd + punctuation[1] + hh + punctuation[2] + min;
 	}
 
-	// Requires write-excel-file (currently not using it)
-	function generate_spreadsheet(sorted_numbers) {
-		if (sorted_numbers.total_count == 0) {
-			alert('Nic nie ma!');
-			return;
-		}
-
-		let sections_with_items = [];
-		Object.keys(STORAGE_SECTION_NAMES).forEach(section => {
-			if (sorted_numbers.sections.hasOwnProperty(section) && sorted_numbers.sections[section].length > 0) {
-				sections_with_items.push(section);
-			}
-		});
-
-		let excel_rows = [[]];
-		let columns = [];
-		let item_count_in_largest_section = 0;
-		const MIN_WIDTH = 7;
-
-		sections_with_items.forEach(section => {
-			excel_rows[0].push({
-				value: STORAGE_SECTION_NAMES[section], 
-				fontWeight: 'bold',
-				align: 'center',
-				backgroundColor: '#afb3b1',
-			});
-
-			let width = section.length + 1;
-			columns.push({width:width < MIN_WIDTH ? MIN_WIDTH : width});
-
-			if (sorted_numbers.sections[section].length > item_count_in_largest_section) {
-				item_count_in_largest_section = sorted_numbers.sections[section].length;
-			}
-		});
-		
-		for(let row=0; row<item_count_in_largest_section; row++) {
-			let excel_row = [];
-			
-			for(let column=0; column<sections_with_items.length; column++) {
-				let section       = sections_with_items[column];
-				let current_value = sorted_numbers.sections[section] && sorted_numbers.sections[section][row] ? sorted_numbers.sections[section][row] : '';
-				
-				excel_row.push({
-					type: String, 
-					value: current_value,
-				});
-
-				if (row % 2) {
-					excel_row[excel_row.length-1].backgroundColor = '#e4e4e4';
-				}
-				
-				if (current_value.length > columns[column].width) {
-					columns[column].width = current_value.length;
-				}
-			}
-
-			excel_rows.push(excel_row);
-		}
-
-		writeXlsxFile(excel_rows, {
-			columns,
-			fileName: generate_file_name() + '.xlsx'
-		})
-	}
-
 	function generate_csv(sorted_numbers) {
 		if (sorted_numbers.total_count == 0) {
 			alert('Nie ma nic do eksportowania');
@@ -2178,6 +2136,7 @@
 
 	function get_id_without_comment(text) {
 		let tokens = [];
+
 		text.trim().split(/\s+/).forEach((word,index)=> {
 			if (index==0 || (index>0 && /^[a-zA-Z0-9]/.test(word))) {
 				tokens.push(word);
