@@ -67,7 +67,7 @@
 			background: #ffffff00;
 		}
 	}
-	.color_flash {
+	.highlight_cell {
 		background-color: orange;
 	}
 	#last_result {
@@ -1081,11 +1081,11 @@
 		return line_with_cursor;
 	}
 
-	function sort_numbers_to_shelves(input_text, storage, continue_search=false, selected_line=-1) {
+	function sort_numbers_to_shelves(input_text, storage, continue_search=false, line_in_which_user_is_typing=-1) {
 		let output = {
 			sections: {non_matching: []},
 			total_count: 0,
-			last_item: {section:'',index:0},
+			last_item: {section:'', index:0},
 			duplicates: [],
 		};
 		let initial_list = {
@@ -1227,7 +1227,7 @@
 						tokens: [words[0], tags, comments]
 					});
 					
-					if (line_number == selected_line) {
+					if (line_number == line_in_which_user_is_typing) {
 						initial_list.last_item = {
 							section: storage.pattern[i].section, 
 							shelf: storage.pattern[i].shelf, 
@@ -1251,7 +1251,7 @@
 					output.duplicates.push(line_preprocessed);
 				}
 
-				if (line_number == selected_line) {
+				if (line_number == line_in_which_user_is_typing) {
 					initial_list.last_item.section = '';
 					initial_list.last_item.shelf   = '';
 					initial_list.last_item.text    = '';
@@ -1287,8 +1287,9 @@
 				shelves.forEach(shelf => {
 					initial_list[section][shelf].forEach(item => {
 						if (initial_list.last_item.section==section && initial_list.last_item.shelf==shelf && initial_list.last_item.text==item.text) {
-							output.last_item.section = section;
-							output.last_item.index   = output.sections[section].length;
+							output.last_item.section   = section;
+							output.last_item.index     = output.sections[section].length;
+							output.last_item.duplicate = output.duplicates.includes(item.text);
 						}
 
 						output.sections[section].push({
@@ -1330,8 +1331,9 @@
 			shelves_sorted.forEach(shelf => {
 				initial_list[section][shelf].forEach(item => {
 					if (initial_list.last_item.section==section && initial_list.last_item.shelf==shelf && initial_list.last_item.text==item.text) {
-						output.last_item.section = section;
-						output.last_item.index   = output.sections[section].length;
+						output.last_item.section   = section;
+						output.last_item.index     = output.sections[section].length;
+						output.last_item.duplicate = output.duplicates.includes(item.text);
 					}
 
 					output.sections[section].push({
@@ -1448,10 +1450,11 @@
 		return first_shelf_in_this_aisle + number_of_rows_in_this_aisle*column + (row-1);
 	}
 
-	input.addEventListener('input', function(e){	
+	input.addEventListener('input', function(e){
 		let line_with_cursor = preprocess_input_text(e.target);
 		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
 		localStorage.setItem("input_text",e.target.value);
+		input.dispatchEvent(new Event('selectionchange'));
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
@@ -1470,22 +1473,16 @@
 		let cursor = localStorage.getItem('cursor');
 		if (cursor) {
 			cursor = JSON.parse(cursor);
-			setTimeout(() => {textarea.setSelectionRange(cursor[0], cursor[1]);}, 10);	// second argument will not work on load so that's why timeout
+			setTimeout(() => {textarea.setSelectionRange(cursor[0], cursor[1]);}, 10);	// setSelectionRange will not work correctly on load so that's why timeout
 		}
 
 		let loaded_strike_list = localStorage.getItem('strike_list');
-		if (loaded_strike_list) {
+		if (loaded_strike_list)
 			strike_list = JSON.parse(loaded_strike_list);
-		} else {
-			strike_list = [];
-		}
 
 		textarea.value = localStorage.getItem('input_text');
-		if (textarea.value.length > 0) {
-			let line_with_cursor = preprocess_input_text(textarea);
-			document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(textarea.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
-			localStorage.setItem('input_text',textarea.value);
-		}
+		if (textarea.value.length > 0)
+			textarea.dispatchEvent(new Event('input'));
 
 		// Tags information paragraph
 		let tags_field = document.getElementById('tags_list');
@@ -1573,7 +1570,7 @@
 				return '';
 			})();
 		}
-
+		
 		const rows = document.querySelector('#'+OUTPUT_TABLE_ID+'>tbody')?.rows;
 		if (!rows)
 			return;
@@ -1582,16 +1579,15 @@
 			const cells = Array.from(row.cells);
 				cells.forEach(cell => {
 					if (selected_id == '') {
-						cell.classList.remove("color_flash");
+						cell.classList.remove('highlight_cell');
 					} else {
 						let colon = cell.textContent.indexOf(':');
 						let current_id = get_id_without_comment(colon ? cell.textContent.slice(colon+1) : cell.textContent);
 	
-						if (current_id == selected_id) {
-							cell.classList.add("color_flash");
-						} else {
-							cell.classList.remove("color_flash");
-						}
+						if (current_id == selected_id)
+							cell.classList.add('highlight_cell');
+						else
+							cell.classList.remove('highlight_cell');
 					}
 			});
 		});
@@ -1893,18 +1889,6 @@
 							textarea.value += reader.result.trim() + '\n'; 
 							break;
 						}
-
-						// Requires read-excel-file.js (currently disabled)
-						case 'xslx' : {
-							readXlsxFile(file).then(function(rows) {							
-								rows.forEach(row => {
-									if (row.length >= 7) {
-										textarea.value += row[6] + '\n';
-									}
-								});
-							});
-							break;
-						}
 					}
 
 					if (is_last) {
@@ -1919,9 +1903,8 @@
 
 
 	function generate_html_table(sorted_numbers) {
-		if (sorted_numbers.total_count == 0) {
+		if (sorted_numbers.total_count == 0)
 			return '';
-		}
 		
 		let sections_with_items = [];
 		Object.keys(STORAGE_SECTION_NAMES).forEach(section => {
@@ -1993,7 +1976,8 @@
 								' - <span class="highlight">' + 
 								STORAGE_SECTION_NAMES[section] + 
 								(shelf ? (': ' + shelf) : '') + 
-								'</span>';
+								'</span>' + 
+								(sorted_numbers.last_item.duplicate ? ' duplikat' : '');
 						}
 					}
 				} else {
@@ -2092,7 +2076,7 @@
 
 		for (let i=0; i<document.styleSheets.length; i++) {
 			for (let j=0; j<document.styleSheets[i].cssRules.length; j++) {
-				if (document.styleSheets[i].cssRules[j].selectorText == '.color_flash') {
+				if (document.styleSheets[i].cssRules[j].selectorText == '.highlight_cell') {
 					saved_style = document.styleSheets[i].cssRules[j];
 					saved_color = document.styleSheets[i].cssRules[j].style.backgroundColor;
 					document.styleSheets[i].cssRules[j].style.backgroundColor = 'transparent';
