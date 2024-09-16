@@ -215,7 +215,7 @@
 	A6:CW,CX,CY, 
 
 	A18 - AA 001T, AA 001U,AA 001V-900V 
-	A42: A2* tag:2022
+	A42: A2* oznaczenie:2022
 
 	B6: AA 0001E-AA 4659E
 	B12: AA 4660E- AA 9000E
@@ -232,7 +232,7 @@
 	B30: AA 1041K - AA 5030K
 	B32:AA 5031K- AA 9070K
 	B33: AA 9071K - AA 9999K,AA 0001L- AA 3120L
-	B41:AA 901V,001W,AE*,AJ*,AM*,AN*,A2* tag:2023,A2* tag:2024
+	B41:AA 901V,001W,AE*,AJ*,AM*,AN*,A2* oznaczenie:2023,A2* oznaczenie:2024
 	B37: AA 3122L-AA 7220L
 	B39:AA 7221L-AA 9999L
 	B43: AA 0002N- AA 1810N
@@ -390,7 +390,7 @@
 	P3PA4 AA 01A-AA 99A,AA 01C-AA 98C,AA 01E-AA 99E
 	P3PB4 AA 01F-AA 99F,AA 01G-AA 59G,AF 35-AF35,AJ 83-AJ 83,AA 4504-AA 4504
 
-	tag:g19
+	oznaczenie:g19
 	P4LD1 AA 6597V-AA 9661V
 	P4LC1 AA 9669V-AA 9992V, AA 0001W-AA 2620W
 	P4LB1 AA 2626W-AA 6431W
@@ -460,7 +460,7 @@
 	P5LB6 AA 0236V-AA 3423V
 	P5LA6 AA 3427V-AA 6577V
 
-	tag:
+	oznaczenie:
 	P5PA1 AA 00006-AA 01260
 	P5PB1 AA 01261-AA 02582
 	P5PC1 AA O2583-AA 04037
@@ -486,7 +486,7 @@
 	P5PC6 AA 28648-AA 29789
 	P5PD6 AA 29792-AA 30908
 
-	tag:g20
+	oznaczenie:g20
 	P6LD1 AA 00171-AA 23607
 	P6LC1 AA 23722-AA 41888
 	P6LB1 AA 41930-AA 54881
@@ -544,7 +544,7 @@
 	P7LD2 AA 308R-AA 999R,AA 013T-AA 557T,AA 0490-AA 4045,AAA 2607-AAA 9786,AAB 0579-AAB 7381,AAH 1499-AAH 9442,AAJ 1128-AAJ 4892,AAK 0431-AAJ 9610,AAM 0960-AAM 9591,AAO 0231-AAO 8628
 	P7LC2 AAO 8700-AAO 9750,AAZ 0179-AAZ 3221,AKA 2360-AKA 6119,AKN 2237,AKO 1234-AKO 7368,AKV 3067,AKX 4048-AKX 7134,ATC 6431,ATB 1090-ATB 1090,ATH 2135-ATH 9214,ATI 6184-ATI 6864,ATJ 2294-ATJ 2294,ATM 6654-ATM 9198,ATO 5470-ATO 7280,ATT 5044-ATT 9980,ATV 0641-ATV 9782,ATX 0678-ATX 8778,ATZ 0440-ATZ 9840,A 001-A 471,AA 12C-AA 43C,AA 40E-AA 62E,A2 5246-A2 5400,AA 07-AA 11,A2 4345-A2 5087
 	P7LB2 A2 5089-A2 5245
-	tag:g21
+	oznaczenie:g21
 	P7LB2 AA 00143-AA 20213
 	P7LA2 AA 20220-AA 37298
 	P7LD3 AA 37311-AA 50308
@@ -614,7 +614,7 @@
 
 	const RAW_STORAGE_MAP = `
 	A:
-	entry:100
+	punkt_odbioru:100
 	   P   T
 	1      113
 	2  62
@@ -666,7 +666,7 @@
 	48     68
 	
 	B:
-	entry:100
+	punkt_odbioru:100
 	   P   T
 	1  115
 	2      13
@@ -718,7 +718,7 @@
 	48     69
 
 	C:
-	entry:99
+	punkt_odbioru:99
 	   P   T
 	1  85
 	2      83
@@ -786,10 +786,10 @@
 			pattern: [],
 		};
 		let tag_for_the_current_storage_section = '';
-		const TAG_KEYWORD = 'tag:';
+		const TAG_KEYWORD = 'oznaczenie:';
 		const DEFER_KEYWORD = 'sprawdzaj_na_końcu';
 		const LINE_KEYWORDS = {
-			'tag':'tag:',
+			'tag':'oznaczenie:',
 			'defer':'sprawdzaj_na_końcu'
 		};
 
@@ -990,7 +990,7 @@
 		let section = '';
 		let shelves_below_the_entry_point = 0;
 		let shelves_above_the_entry_point = 0;
-		const ENTRY_KEYWORD = 'entry:';
+		const ENTRY_KEYWORD = 'punkt_odbioru:';
 
 		input_text.toLowerCase().split(/\r?\n/).forEach(line => {
 			line = line.trim();
