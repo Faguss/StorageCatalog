@@ -92,58 +92,66 @@
 		</div>
 
 		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
-		<p>Wpisz numery w polu poniżej lub przeciągnij plik z listą.</p>
+		<p>Wpisz numery w polu poniżej lub przeciągnij tutaj plik z listą. <button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('options_toggle').style);">Opcje</button></p>
+		
+		<div style="margin-bottom:1em;display:none;background-color:#fff3e4;" id="options_toggle">	
+			Import pliku: <input style="margin-bottom:0.1em;" type="file" multiple="multiple" onchange="parse_dropped_files(this)">
+			<br>
+			<label for="csv_import_column_name">Nazwa kolumny w pliku CSV:</label>
+			<input type="text" id="csv_import_column_name" name="csv_import_column_name" style="margin-bottom:0.5em;" size="8">
+			<br>
+			<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
+			<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('key_info').style);document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
+			<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Utwórz plik CSV</button>
+			<button type="button" onclick="print_html_table()">Wydrukuj</button>
+			<br>
+			<input type="checkbox" id="continuesearch" style="margin-top:0.5em;" name="continuesearch"><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
+
+			<div style="display:none;" id="tags_info">
+				<p style="margin-bottom:0">Po numerze dopisz oznaczenie aby określić miejsce wyszukiwania. Na przykład: 
+					<span style="font-family:monospace;" id="tags_example"></span>
+					<br>
+					Dostępne oznaczenia to:
+				</p>
+				<div style="font-size:small; margin-left:1em;" id="tags_list"></div>
+				<p>Oznaczenia niezaczynające się od litery lub cyfry są ignorowane (służą jako komentarz).</p>
+			</div>
+
+			<div style="display:none;" id="key_info">
+				<div style="margin-top:1em">
+					<label for="key_info_select">Indeks sekcji:</label>
+					<select name="key_info_select" id="key_info_select"></select>
+
+					<label for="key_info_select_tag">Oznaczenie:</label>
+					<select name="key_info_select_tag" id="key_info_select_tag">
+						<option value="" selected="selected">brak</option>
+					</select>
+
+					<label for="key_info_select_sort">Sortuj wg:</label>
+					<select name="key_info_select_sort" id="key_info_select_sort">
+						<option value="default" selected="selected">kolejności wpisania</option>
+						<option value="shelf">numeracji półek</option>
+						<option value="suffix">końcówki</option>
+					</select>
+				</div>
+				
+				<div class="key_info" id="key_info_display"></div>
+				
+				<div id="key_info_map">
+					<h3>Mapa szafy:</h3>
+					<label for="key_info_map_display_sort">Sortuj wg:</label>
+					<select name="key_info_map_display_sort" id="key_info_map_display_sort">
+						<option value="place">miejsca</option>
+						<option value="shelf">numeracji półek</option>
+					</select>
+					<input type="checkbox" id="key_info_map_toggle_content" name="key_info_map_toggle_content"><label for="key_info_map_toggle_content">Pokaż zawartość</label>
+					<div style="margin-top:1em;" id="key_info_map_display"></div>
+				</div>
+			</div>
+		</div>
+		
 		<textarea id="input" rows=10></textarea>
 		<p id="last_result"></p>
-
-		<input type="checkbox" id="continuesearch" name="continuesearch"><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
-		<br>
-		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
-		<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('key_info').style);document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
-		<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Utwórz plik CSV</button>
-		<button type="button" onclick="print_html_table()">Wydrukuj</button>
-
-		<div style="display:none;" id="tags_info">
-			<p style="margin-bottom:0">Po numerze dopisz oznaczenie aby określić miejsce wyszukiwania. Na przykład: 
-				<span style="font-family:monospace;" id="tags_example"></span>
-				<br>
-				Dostępne oznaczenia to:
-			</p>
-			<div style="font-size:small; margin-left:1em;" id="tags_list"></div>
-			<p>Oznaczenia niezaczynające się od litery lub cyfry są ignorowane (służą jako komentarz).</p>
-		</div>
-
-		<div style="display:none;" id="key_info">
-			<div style="margin-top:1em">
-				<label for="key_info_select">Indeks sekcji:</label>
-				<select name="key_info_select" id="key_info_select"></select>
-
-				<label for="key_info_select_tag">Oznaczenie:</label>
-				<select name="key_info_select_tag" id="key_info_select_tag">
-					<option value="" selected="selected">brak</option>
-				</select>
-
-				<label for="key_info_select_sort">Sortuj wg:</label>
-				<select name="key_info_select_sort" id="key_info_select_sort">
-					<option value="default" selected="selected">kolejności wpisania</option>
-					<option value="shelf">numeracji półek</option>
-					<option value="suffix">końcówki</option>
-				</select>
-			</div>
-			
-			<div class="key_info" id="key_info_display"></div>
-			
-			<div id="key_info_map">
-				<h3>Mapa szafy:</h3>
-				<label for="key_info_map_display_sort">Sortuj wg:</label>
-				<select name="key_info_map_display_sort" id="key_info_map_display_sort">
-					<option value="place">miejsca</option>
-					<option value="shelf">numeracji półek</option>
-				</select>
-				<input type="checkbox" id="key_info_map_toggle_content" name="key_info_map_toggle_content"><label for="key_info_map_toggle_content">Pokaż zawartość</label>
-				<div style="margin-top:1em;" id="key_info_map_display"></div>
-			</div>
-		</div>
 	</div>
 	<div id="output"></div>
 
@@ -1526,6 +1534,15 @@
 		key_info_select_tag.addEventListener('change', (event) => {display_storage_key(event.target, key_info_select, key_info_select_tag, key_info_select_sort, key_info_display)});
 		
 		key_info_map_display_sort.addEventListener('change', (event) => {display_storage_map(event.target, key_info_select, key_info_map_toggle_content.checked, key_info_map_display_sort, key_info_map_display)});
+		
+		let csv_column = document.getElementById('csv_import_column_name');
+		if (csv_column) {
+			csv_import_column_name.value = CSV_IMPORT_DEFAULT_COLUMN;
+			
+			let loaded_column = localStorage.getItem('csv_import_column_name');
+			if (loaded_column)
+				csv_import_column_name.value = JSON.parse(loaded_column);
+		}
 	});
 
 	input.addEventListener('selectionchange', function(e){
@@ -1848,6 +1865,13 @@
 
 		let textarea = document.getElementById('input');
 		textarea.value = '';
+		
+		let csv_wanted_column_name = '';
+		let csv_input = document.getElementById('csv_import_column_name');
+		if (csv_input) {
+			csv_wanted_column_name = csv_input.value;
+			localStorage.setItem('csv_import_column_name', JSON.stringify(csv_wanted_column_name));
+		}
 
 		for (var i=0; i<input.files.length; i++) {
 			(function(file, is_last) {
@@ -1869,7 +1893,7 @@
 											column_number++;
 
 											if (line_number == 0) {
-												if (line.substring(column_start,i).toLowerCase() == CSV_IMPORT_DATA_FROM_COLUMN.toLowerCase()) {
+												if (line.substring(column_start,i).toLowerCase() == csv_wanted_column_name.toLowerCase()) {
 													wanted_column = column_number - 1;
 												}
 											} else 
