@@ -28,6 +28,9 @@
 		padding-right: 8px;
 		font-size: small;
 	}
+	tbody tr {
+		background-color: #ffffff;
+	}
 	tbody tr:nth-child(even) {
 		background-color: #e4e4e4;
 	}
@@ -82,6 +85,15 @@
 		font-family: monospace;
 		line-height:1.3em;
 	}
+	#user_manual {
+		max-width: 65ch;
+		line-height: 1.2em;
+		background-color: #fff8e8;
+	}
+	.small_list {
+		font-family: monospace; 
+		margin-left:1em;
+	}
 	</style>
 </head>
 
@@ -92,32 +104,235 @@
 		</div>
 
 		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
-		<p>Wpisz numery w polu poniżej lub przeciągnij tutaj plik z listą. <button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('options_toggle').style);">Opcje</button></p>
+		<p>Wpisz numery w polu poniżej lub przeciągnij tutaj plik z listą. <button type="button" onclick="toggle_visiblity('options_toggle')">Opcje</button></p>
 		
-		<div style="margin-bottom:1em;display:none;background-color:#fff3e4;" id="options_toggle">	
+		<div style="margin-bottom:1em;display:none;background-color:rgba(255,243,228,0.4);" id="options_toggle">	
 			Import pliku: <input style="margin-bottom:0.1em;" type="file" multiple="multiple" onchange="parse_dropped_files(this)">
 			<br>
 			<label for="csv_import_column_name">Nazwa kolumny w pliku CSV:</label>
 			<input type="text" id="csv_import_column_name" name="csv_import_column_name" style="margin-bottom:0.5em;" size="8">
 			<br>
-			<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('tags_info').style);">Pokaż oznaczenia</button>
-			<button type="button" onclick="(function(style) {style.display=style.display==='none' ? '' : 'none';})(document.getElementById('key_info').style);document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
+			<button type="button" onclick="toggle_visiblity('user_manual')">Pokaż instrukcję</button>
+			<button type="button" onclick="toggle_visiblity('key_info_section');document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
 			<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Utwórz plik CSV</button>
 			<button type="button" onclick="print_html_table()">Wydrukuj</button>
 			<br>
 			<input type="checkbox" id="continuesearch" style="margin-top:0.5em;" name="continuesearch"><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
+			<br>
+			<input type="checkbox" id="matchbysuffix" style="margin-top:0.5em;" name="matchbysuffix"><label for="matchbysuffix">Znajdź po końcówce jeśli liczby nie ma w zakresie</label>
 
-			<div style="display:none;" id="tags_info">
-				<p style="margin-bottom:0">Po numerze dopisz oznaczenie aby określić miejsce wyszukiwania. Na przykład: 
-					<span style="font-family:monospace;" id="tags_example"></span>
-					<br>
+			<div style="display:none" id="user_manual">
+				<hr>
+				<h2>Instrukcja obsługi</h2>
+				<p>Wybierz rozdział:</p>
+				
+				<button type="button" onclick="toggle_visiblity('chapter1','user_manual')">Wyszukiwanie</button>
+				<button type="button" onclick="toggle_visiblity('chapter2','user_manual')">Oznaczenia</button>
+				<button type="button" onclick="toggle_visiblity('chapter3','user_manual')">Opcje</button>
+				<button type="button" onclick="toggle_visiblity('chapter4','user_manual')">Eksport/Import</button>
+				<button type="button" onclick="toggle_visiblity('chapter5','user_manual')">Indeks</button>
+				<button type="button" onclick="toggle_visiblity('chapter6','user_manual')">Mapa</button>
+				
+				<div style="display:none" id="chapter1">
+					<h3>1. Wyszukiwanie i wyświetlanie wyników</h3>
+					<p>W polu tekstowym wpisz numer identyfikacyjny, który chcesz zlokalizować. 
+					Program automatycznie uzupełnia domyślny prefiks (<code class="fill_with_default_prefix"></code>) więc wystarczy napisać <code>250JF</code>, żeby otrzymać <code><code class="fill_with_default_prefix"></code>250JF</code>.
+					</p>
+					<p>Rezultat wyświetlany jest w tabeli poniżej. 
+					Nagłówek tabeli określa znalezioną sekcję, a w komórce znajduje się numer półki. 
+					W stopce tabeli znajduje się ilość numerów w każdej sekcji oraz licznik wszystkich wpisanych numerów.
+					</p>
+					<p>Wyniki są sortowanie według ułożenia półek, żeby skrócić czas transportu.
+					Niepasujące numery zostaną umieszczone w sekcji <code class="fill_with_nonmatching"></code>.
+					</p>
+					<p>Jeśli wpisane zostały identyczne numery, to lista duplikatów będzie wyświetlona pod tabelą.</p>
+					<p>Pod polem tekstowym, małą czcionką pokazany jest rezultat dla ostatniego wpisanego numeru.</p>
+					<p>Aktualnie zaznaczony numer w polu tekstowym będzie miał pomarańczowy kolor w tabeli. 
+					Kliknij na inne numery w polu tekstowym, aby móc szybko odnajdywać je w tabeli.
+					</p>
+					<p>Kliknij na komórkę w tabeli aby zakreślić dany numer.</p>
+					<p>Program zapisuje zawartość pola tekstowego i listę wykreślonych numerów w pamięci przeglądarki. 
+					Zamknięcie zakładki w przeglądarce nie spowoduje utraty danych.
+					</p>
+				</div>
+				
+				<div style="display:none" id="chapter2">
+					<h3>2. Oznaczenia</h3>
+					<p>W tej samej linijce, po numerze dopisz kolejny wyraz aby doprecyzować miejsce wyszukiwania. 
+					Na przykład: <code class="fill_with_default_prefix"></code><code>100AA</code> <code class="fill_with_example_tag"></code>.
 					Dostępne oznaczenia to:
-				</p>
-				<div style="font-size:small; margin-left:1em;" id="tags_list"></div>
-				<p>Oznaczenia niezaczynające się od litery lub cyfry są ignorowane (służą jako komentarz).</p>
+					</p>
+					<div class="small_list fill_with_tags_list"></div>
+					<p>Oznaczenia niezaczynające się od litery lub cyfry służą jako komentarz. 
+					Na przykład: <code class="fill_with_default_prefix"></code><code>100AA</code> <code class="fill_with_example_tag"></code> <code>.Adam</code>
+					</p>
+				</div>
+				
+				<div style="display:none" id="chapter3">
+					<h3>3. Dodatkowe opcje wyszukiwania</h3>
+					<h4>a) Pokaż wyniki w krzyżujących się zakresach</h4>
+					<p>Program wyszukując numer porównuje go z każdym zakresem w indeksie, dopóki nie znajdzie dopasowania. 
+					Jeśli na takie natrafi to kończy szukanie dla danego numeru i przechodzi do kolejnego.
+					</p>
+					<p>Zaznaczenie opcji <code>Pokaż wyniki w krzyżujących się zakresach</code> spowoduje, że program po znalezieniu półki będzie dalej przeszukiwał indeks, co może dać trafienia w więcej niż jednej półce.</p>
+					
+					<h4>b) Znajdź po końcówce jeśli liczby nie ma w zakresie</h4>
+					<p>W sekcji może znajdować się niepełny zakres. Na przykład:</p>
+					<div class="small_list">
+						Półka 1: 250AA - 500AA<br>
+						Półka 2: 501AA - 900AA<br>
+					</div>
+					<p>Program nie znajdzie numerów <code>100AA</code> albo <code>950AA</code> ponieważ powyższe zakresy ich nie obejmują. 
+					Zaznaczenie opcji <code>Znajdź po końcówce jeśli liczby nie ma w zakresie</code> spowoduje poluzowanie wymagań i program wybierzę bliższą półkę z tą samą końcówką. 
+					Na przykład dla <code>100AA</code> będzie to <code>Półka 1</code>, a dla <code>950AA</code> będzie to <code>Półka 2</code>.
+					</p>
+				</div>
+				
+				<div style="display:none" id="chapter4">
+					<h3>4. Eksport / import / druk listy</h3>
+					<p>Jeśli masz listę numerów w pliku TXT lub CSV to przeciągnij ten plik do okna przeglądarki, a program wczyta z niego numery. 
+					Alternatywnie wciśnij <code>Przeglądaj...</code> aby wybrać plik ręcznie.
+					</p>
+					<p>W przypadku pliku CSV ważna jest nazwa kolumny, z której program ma wczytać dane. 
+					Domyślnie jest to <code class="fill_with_csv_column"></code> ale można to zmienić wpisując nową wartość w polu <code>Nazwa kolumny w pliku CSV</code>.
+					</p>
+					<p>Listę numerów wpisanych w polu tekstowym można zapisać do nowego pliku klikając na przycisk <code>Utwórz plik CSV</code>.</p>
+					<p>Listę można również wydrukować klikając na przycisk <code>Wydrukuj</code>. 
+					Zbędne elementy na stronie znikną i pozostanie tylko tabela. 
+					Po chwili pojawi się okienko dialogowe drukowania. 
+					Po zakończeniu kliknij gdziekolwiek na stronie aby przywrócić opcje.
+					</p>
+				</div>
+				
+				<div style="display:none" id="chapter5">
+					<h3>5. Modyfikowanie indeksu zawartości półek</h3>
+					<p>Znajdź plik "lokalizator", wciśnij na niego prawym przyciskiem, wybierz "Otwórz za pomocą" i "Notatnik". 
+					Wciśnij CTRL+F, wpisz <code class="fill_with_var_name_raw_key"></code> i naciśnij ENTER a potem ESC, żeby zamknąć okienko wyszukiwania.
+					</p>
+					<p>Pod tym słowem znajduje się indeks zawartości półek, który można zmieniać. 
+					Po wprowadzeniu własnych zmian naciśnij CTRL+S i przeładuj stronę w przeglądarce.
+					</p>
+					<p>Każda linijka odpowiada jednej półce. 
+					Pierwszy wyraz składa się z jednoliterowego identyfikatora sekcji, a po nim następuje się numer półki. 
+					Na przykład <code>A20</code> to sekcja A i półka 20. Używane identyfikatory to:
+					</p>
+					<div class="small_list fill_with_section_id"></div>
+					<p>Po identyfikatorze wypisanych jest jeden lub więcej zakresów (oddziela się je przecinkami). Na przykład:</p>
+					<div class="small_list">
+						A20 JF<br>
+						A21 JG,JH
+					</div>
+					<p>Jeśli zakres składa się z samych liter (na przykład <code>JF</code>) to obejmie on wszystkie numery (001-999) z taką końcówką. 
+					W powyższym przykładzie półka 20 zawiera wszystkie numery z końcówką JF, natomiast półka 21 zawiera wszystkie numery z końcówką JG i JH.
+					</p>
+					<p>Aby podzielić zakres, dopisz na początku jedną lub dwie liczby oddzielone myślnikiem:</p>
+					<div class="small_list">
+						A20 001-499JF<br>
+						A21 500JF
+					</div>
+					<p>Domyślnym prefiksem jest <code class="fill_with_default_prefix"></code> więc nie trzeba go wszędzie dodawać. 
+					Ale jeśli numery mają inny początek, to wtedy należy dopisać go z odstępem. Na przykład:
+					</p>
+					<div class="small_list">
+						A22 WA 001-999JF
+					</div>
+					<p>Aby objąć wszystkie numery zaczynające się od danego prefiksu zamień zakres liczbowy na gwiazdkę:</p>
+					<div class="small_list">
+						A22 WA*
+					</div>
+					<p>Aby alfabetycznie objąć zakres prefiksów należy wpisać początek zakresu, dwie kropki, myślnik, koniec zakresu i dwie kropki.</p>
+					<div class="small_list">
+						A23 W..-ZBC..
+					</div>
+					<p>Powyższy przykład obejmie wszystkie numery zaczynające się od litery W (w tym takie numery jak WGI, X, XCD) do ZBC włącznie (ZBD i następne nie będą częścią zakresu). 
+					Numery z domyślnym prefiksem (<code class="fill_with_default_prefix"></code>) nie wliczają się do alfabetycznych zakresów.
+					</p>
+					<p>Do zakresu można dopisać słowo <code>oznaczenie:</code> z wartością po dwukropku, co spowoduje, że niezbędne będzie dodanie tego oznaczenia przy wyszukiwaniu.</p>
+					<div class="small_list">
+						A24 JF oznaczenie:2023<br>
+						A25 JF oznaczenie:2024
+					</div>
+					<p>Jeśli linijka zaczyna się od słowa <code>oznaczenie:</code> to wszystkie kolejne zakresy będą wymagały danego oznaczenia.</p>
+					<div class="small_list">
+						oznaczenie:2024<br>
+						A24 JF<br>
+						A25 JG
+					</div>
+					<p>Wpisz <code>oznaczenie:</code> bez wartości aby wyłączyć to dla następnych linijek.</p>
+					<div class="small_list">
+						oznaczenie:2024<br>
+						A24 JF<br>
+						A25 JG<br>
+						oznaczenie:<br>
+						B10 JF<br>
+						B11 JG
+					</div>
+					<p>W powyższym przykładzie wyszukanie numeru <code>JF</code> z oznaczeniem <code>2024</code> i bez, przyniesie różne wyniki</p>
+					<p>Istnieją także słowa specjalne: <code>skrócone</code> - obejmie numery składające się z 3 lub 4 znaków; <code>indywidualne</code> - obejmie numery zaczynające się od litery i cyfry.</p>
+					<div class="small_list">
+						A1 skrócone <br>
+						A2 indywidualne
+					</div>
+					<p>Po zakresie można dopisać słowo specjalne <code>sprawdzaj_na_końcu</code> aby zmniejszyć priorytet danego zakresu. Na przykład:</p>
+					<div class="small_list">
+						A1 GG* sprawdzaj_na_końcu<br>
+						A2 G..-H..
+					</div>
+					<p>W powyższym przykładzie wyszukanie <code>GG</code> wyświetli półkę 2. Aby znaleźć go w półce 1 trzeba będzie użyć opcji <code>Pokaż wyniki w krzyżujących się zakresach</code>.</p>
+					<p>Identyfikatory półek w piwnicy różnią się od pozostałych identyfikatorów. 
+					Na przykład <code>P2PB3</code> oznacza:</p>
+					<div class="small_list">
+						P - identyfikator piwnicy<br>
+						2 - numer szafy (licząc od lewej)<br>
+						P - prawa strona (L oznacza lewą stronę)<br>
+						B - numer kolumny (A jest najbliżej wyjścia, D jest najbliżej ściany)<br>
+						3 - numer rzędu (od 1 do 6)
+					</div>
+					<p>W tabeli wyników, półki piwnicy będą pokazane jako liczba lub w postaci szczegółowego opisu. 
+					Decyduje o tym wartość <code class="fill_with_var_name_pshelves"></code> (wciśnij CTRL+F aby ją odnaleźć) czyli do którego numeru półki są oznaczone liczbowo.
+					Aktualnie ta wartość wynosi <span class="fill_with_numbered_until"></span>.
+					Zwiększ ją, gdy kolejne półki otrzymają cyfrowe oznaczenie.
+					</p>
+					
+					<p>Gotowy indeks można sprawdzić w programie klikając na przycisk <code>Pokaż indeks</code>.</p>
+				</div>
+				
+				<div style="display:none" id="chapter6">
+					<h3>6. Modyfikowanie indeksu lokalizacji półek</h3>
+					<p>W tabeli wyników półki są sortowane według ich ułożenia w danej sekcji (po kolei od szczytowej do najgłębszej). 
+					Ponieważ ich pozycja może się zmieniać, to co jakiś czas trzeba będzie aktualizować ich pozycję w programie.
+					</p>
+					<p>Znajdź plik "lokalizator", wciśnij na niego prawym przyciskiem, wybierz "Otwórz za pomocą" i "Notatnik". 
+					Wciśnij CTRL+F, wpisz <code class="fill_with_var_name_raw_map"></code> i naciśnij ENTER a potem ESC, żeby zamknąć okienko wyszukiwania.
+					</p>
+					<p>Pod tym słowem znajduje się indeks pozycji półek, który można zmieniać. 
+					Po wprowadzeniu własnych zmian naciśnij CTRL+S i przeładuj stronę w przeglądarce.
+					</p>
+					<p>Indeks zaczyna się od jednoliterowego identyfikatora sekcji.
+					Używane identyfikatory to:
+					</p>
+					<div class="small_list fill_with_map_id"></div>
+					<p>W kolejnych linijkach znajdują się numery półek i ich pozycja. 
+					Wykres wygląda podobnie do tego, który jest wyświetlany w panelu obsługi.
+					</p>
+					<p>Przykładowy indeks:</p>
+					<div class="small_list">
+						A:<br>
+						1 100<br>
+						2 50
+					</div>
+					<p>W sekcji A, półka numer jeden znajduje się na pozycji 100, a półka numer dwa na pozycji 50.
+					Dla programu nie ma znaczenia, czy wartość znajduje się w kolumnie P lub T (jest to tak napisane wyłącznie dla wygody użytkownika).
+					</p>
+					<p>Gotową mapę można sprawdzić w programie, klikając na przycisk <code>Pokaż indeks</code> i przewijając w dół.</p>
+					<p>Piwnica nie ma indeksu miejsc półek ponieważ ich lokalizacja nigdy się nie zmienia. 
+					Program sortuje półki kolumnami (najpierw kolumna najbliżej ściany, a potem następne idąc w kierunku wyjścia).
+					</p>
+				</div>
+				<hr>
 			</div>
 
-			<div style="display:none;" id="key_info">
+			<div style="display:none;" id="key_info_section">
 				<div style="margin-top:1em">
 					<label for="key_info_select">Indeks sekcji:</label>
 					<select name="key_info_select" id="key_info_select"></select>
@@ -129,7 +344,7 @@
 
 					<label for="key_info_select_sort">Sortuj wg:</label>
 					<select name="key_info_select_sort" id="key_info_select_sort">
-						<option value="default" selected="selected">kolejności wpisania</option>
+						<option value="default" selected="selected">kolejności wyszukiwania</option>
 						<option value="shelf">numeracji półek</option>
 						<option value="suffix">końcówki</option>
 					</select>
@@ -1089,13 +1304,14 @@
 		return line_with_cursor;
 	}
 
-	function sort_numbers_to_shelves(input_text, storage, continue_search=false, line_in_which_user_is_typing=-1) {
+	function sort_numbers_to_shelves(input_text, storage, continue_search=false, match_by_suffix=false, line_in_which_user_is_typing=-1) {
 		let output = {
 			sections: {non_matching: []},
 			total_count: 0,
 			last_item: {section:'', index:0},
 			duplicates: [],
 		};
+		
 		let initial_list = {
 			last_item: {
 				section: '', 
@@ -1103,6 +1319,7 @@
 				text: '',
 			}
 		};
+		
 		storage.sections.forEach(section => {
 			output.sections[section] = []; 
 			initial_list[section]    = [];
@@ -1162,13 +1379,31 @@
 			}
 		}
 
-		function compare_number(current_id, current, storage_pattern) {
-			if (storage_pattern.prefix!=DEFAULT_PREFIX && /[0-9]/.test(storage_pattern.prefix)) {
-				let current_new = parse_id_number(current_id, storage_pattern.prefix);
-				return current_new.number >= storage_pattern.start && current_new.number<=storage_pattern.end && current_new.digits==storage_pattern.digits;
-			} else {
-				return current.number >= storage_pattern.start && current.number<=storage_pattern.end && current.digits==storage_pattern.digits;
+		function add_match_to_results(initial_list, storage, line_preprocessed, output, i, words, tags, comments, line_number, line_in_which_user_is_typing) {
+			if (!initial_list[storage.pattern[i].section].hasOwnProperty(storage.pattern[i].shelf)) {
+				initial_list[storage.pattern[i].section][storage.pattern[i].shelf] = [];
 			}
+
+			initial_list[storage.pattern[i].section][storage.pattern[i].shelf].forEach(item => {
+				if (item.text == line_preprocessed && !output.duplicates.includes(line_preprocessed)) {
+					output.duplicates.push(line_preprocessed);
+				}
+			});
+
+			initial_list[storage.pattern[i].section][storage.pattern[i].shelf].push({
+				ruleid: i,
+				text: line_preprocessed,
+				tokens: [words[0], tags, comments]
+			});
+			
+			if (line_number == line_in_which_user_is_typing) {
+				initial_list.last_item = {
+					section: storage.pattern[i].section, 
+					shelf: storage.pattern[i].shelf, 
+					text: line_preprocessed
+				};
+			}
+			output.total_count++;
 		}
 
 		input_text.split(/\r?\n/).forEach((line, line_number) => {
@@ -1195,8 +1430,31 @@
 			let line_preprocessed = current_id + (tags.length>0 ? ' ' : '') + tags.join(' ');
 			let current = parse_id_number(current_id);
 			let matched = false;
+			let patterns_matched_by_suffix = {
+				pattern_index:-1,
+				lowest_number:-1,
+				highest_number:-1,
+			};
 			
 			for(let i=0; i<storage.pattern.length && (!matched || continue_search); i++) {
+				let suffix_match = (!storage.pattern[i].hasOwnProperty('suffix') ||	current.suffix == storage.pattern[i].suffix);
+				let tag_match = ((!storage.pattern[i].hasOwnProperty('tag') && tags.length==0) || tags.includes(storage.pattern[i].tag));
+				let number_match = false;
+				let current_adjusted = current;
+				
+				if (storage.pattern[i].hasOwnProperty('start') && storage.pattern[i].hasOwnProperty('end') && storage.pattern[i].hasOwnProperty('digits')) {
+				
+					// If storage pattern prefix contains a digit then we need to parse input line again
+					if (storage.pattern[i].prefix!=DEFAULT_PREFIX && /[0-9]/.test(storage.pattern[i].prefix))
+						current_adjusted = parse_id_number(current_id, storage.pattern[i].prefix);
+					
+					number_match = 
+						current_adjusted.number >= storage.pattern[i].start && 
+						current_adjusted.number <= storage.pattern[i].end && 
+						current_adjusted.digits == storage.pattern[i].digits;
+				} else 
+					number_match = true;
+				
 				if (
 					((!storage.pattern[i].hasOwnProperty('length_min') || !storage.pattern[i].hasOwnProperty('length_max')) ||
 					(current_id.length >= storage.pattern[i].length_min && current_id.length <= storage.pattern[i].length_max))
@@ -1210,71 +1468,60 @@
 					(!storage.pattern[i].hasOwnProperty('prefix') ||
 					compare_prefix(current_id, current, storage.pattern[i].prefix))
 					&&
-					(!storage.pattern[i].hasOwnProperty('suffix') ||
-					current.suffix == storage.pattern[i].suffix)
+					suffix_match
 					&&
-					((!storage.pattern[i].hasOwnProperty('start') || !storage.pattern[i].hasOwnProperty('end') || !storage.pattern[i].hasOwnProperty('digits')) ||
-					compare_number(current_id, current, storage.pattern[i]))
+					number_match
 					&&
-					((!storage.pattern[i].hasOwnProperty('tag') && tags.length==0) ||
-					tags.includes(storage.pattern[i].tag))
+					tag_match
 				) {
-					if (!initial_list[storage.pattern[i].section].hasOwnProperty(storage.pattern[i].shelf)) {
-						initial_list[storage.pattern[i].section][storage.pattern[i].shelf] = [];
-					}
-
-					initial_list[storage.pattern[i].section][storage.pattern[i].shelf].forEach(item => {
-						if (item.text == line_preprocessed && !output.duplicates.includes(line_preprocessed)) {
-							output.duplicates.push(line_preprocessed);
-						}
-					});
-
-					initial_list[storage.pattern[i].section][storage.pattern[i].shelf].push({
-						ruleid: i,
-						text: line_preprocessed,
-						tokens: [words[0], tags, comments]
-					});
-					
-					if (line_number == line_in_which_user_is_typing) {
-						initial_list.last_item = {
-							section: storage.pattern[i].section, 
-							shelf: storage.pattern[i].shelf, 
-							text: line_preprocessed
-						};
-					}
-					output.total_count++;
+					add_match_to_results(initial_list, storage, line_preprocessed, output, i, words, tags, comments, line_number, line_in_which_user_is_typing);
 					matched = true;
-				}
+				} else 
+					if (match_by_suffix && suffix_match && !number_match && tag_match) {
+						if (current_adjusted.number < storage.pattern[i].start && (patterns_matched_by_suffix.lowest_number==-1 || storage.pattern[i].start<patterns_matched_by_suffix.lowest_number)) {
+							patterns_matched_by_suffix.lowest_number = storage.pattern[i].start;
+							patterns_matched_by_suffix.pattern_index = i;
+						}
+							
+						if (current_adjusted.number > storage.pattern[i].end && (patterns_matched_by_suffix.highest_number==-1 || storage.pattern[i].end>patterns_matched_by_suffix.highest_number)) {
+							patterns_matched_by_suffix.highest_number = storage.pattern[i].end;
+							patterns_matched_by_suffix.pattern_index = i;
+						}
+					}
 			}
 			
 			if (!matched) {
-				let found = false;
-				for(let j=0; j<output.sections.non_matching.length && !found; j++) {
-					if (output.sections.non_matching[j].text == line_preprocessed) {
-						found = true;
+				if (match_by_suffix && patterns_matched_by_suffix.pattern_index!=-1) {
+					add_match_to_results(initial_list, storage, line_preprocessed, output, patterns_matched_by_suffix.pattern_index, words, tags, comments, line_number, line_in_which_user_is_typing);
+				} else {
+					let found = false;
+					for(let j=0; j<output.sections.non_matching.length && !found; j++) {
+						if (output.sections.non_matching[j].text == line_preprocessed) {
+							found = true;
+						}
 					}
-				}
 
-				if (found && !output.duplicates.includes(line_preprocessed)) {
-					output.duplicates.push(line_preprocessed);
-				}
+					if (found && !output.duplicates.includes(line_preprocessed)) {
+						output.duplicates.push(line_preprocessed);
+					}
 
-				if (line_number == line_in_which_user_is_typing) {
-					initial_list.last_item.section = '';
-					initial_list.last_item.shelf   = '';
-					initial_list.last_item.text    = '';
-					output.last_item.section       = 'non_matching';
-					output.last_item.index         = output.sections.non_matching.length;
-				}
+					if (line_number == line_in_which_user_is_typing) {
+						initial_list.last_item.section = '';
+						initial_list.last_item.shelf   = '';
+						initial_list.last_item.text    = '';
+						output.last_item.section       = 'non_matching';
+						output.last_item.index         = output.sections.non_matching.length;
+					}
 
-				output.sections.non_matching.push({
-					text: line_preprocessed,
-					id: words[0],
-					tags: tags,
-					comments: comments
-				});
-				
-				output.total_count++;
+					output.sections.non_matching.push({
+						text: line_preprocessed,
+						id: words[0],
+						tags: tags,
+						comments: comments
+					});
+					
+					output.total_count++;
+				}
 			}
 		});
         
@@ -1460,12 +1707,23 @@
 
 	input.addEventListener('input', function(e){
 		let line_with_cursor = preprocess_input_text(e.target);
-		document.getElementById('output').innerHTML = generate_html_table(sort_numbers_to_shelves(e.target.value, storage, document.getElementById('continuesearch').checked, line_with_cursor));
+		document.getElementById('output').innerHTML = generate_html_table(
+			sort_numbers_to_shelves(
+				e.target.value, storage, 
+				document.getElementById('continuesearch').checked, 
+				document.getElementById('matchbysuffix').checked, 
+				line_with_cursor
+			)
+		);
 		localStorage.setItem("input_text",e.target.value);
 		input.dispatchEvent(new Event('selectionchange'));
 	});
 
 	document.getElementById('continuesearch').addEventListener('input', function(e){
+		document.getElementById('input').dispatchEvent(new Event('input'));
+	});
+	
+	document.getElementById('matchbysuffix').addEventListener('input', function(e){
 		document.getElementById('input').dispatchEvent(new Event('input'));
 	});
 	
@@ -1492,25 +1750,31 @@
 		if (textarea.value.length > 0)
 			textarea.dispatchEvent(new Event('input'));
 
-		// Tags information paragraph
-		let tags_field = document.getElementById('tags_list');
-		let tags_all   = [];
-
+		// Make a list of all tags in use
+		let tags_all = [];
 		Object.keys(storage.tags_section).forEach(key=>{
 			storage.tags_section[key].forEach(item=>{
 				tags_all.push(item);
 			});
 		});
-
-		tags_field.innerHTML = tags_all.join('<br>');
-
-		storage.tags_local.forEach(tag => {
-			tags_field.innerHTML += '<br>' + tag.name + ' (tylko dla ' + tag.range + ')';
-		})
-
-		if (tags_all.length > 0) {
-			document.getElementById('tags_example').innerHTML = DEFAULT_PREFIX + '12345 ' + tags_all[0];
-		}
+		
+		// Fill example information in the user manual
+		document.querySelectorAll('.fill_with_default_prefix').forEach(node=>{node.innerHTML = DEFAULT_PREFIX.toUpperCase();});
+		document.querySelectorAll('.fill_with_nonmatching').forEach(node=>{node.innerHTML = STORAGE_SECTION_NAMES[NON_MATCHING_SECTION_KEY];});
+		document.querySelectorAll('.fill_with_example_tag').forEach(node=>{node.innerHTML = tags_all[0];});
+		document.querySelectorAll('.fill_with_csv_column').forEach(node=>{node.innerHTML = CSV_IMPORT_DEFAULT_COLUMN;});
+		document.querySelectorAll('.fill_with_numbered_until').forEach(node=>{node.innerHTML = P_SECTION_SHELVES_NUMBERED_UNTIL;});
+		document.querySelectorAll('.fill_with_var_name_raw_key').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_KEY';});	// make it not-searchable in text editor so that you hit actual var instead of description about it
+		document.querySelectorAll('.fill_with_var_name_raw_map').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_MAP';});
+		document.querySelectorAll('.fill_with_var_name_pshelves').forEach(node=>{node.innerHTML = 'P_SECTION'+'_SHELVES_NUMBERED_UNTIL';});
+		document.querySelectorAll('.fill_with_section_id').forEach(node=>{node.innerHTML = Object.keys(STORAGE_SECTION_NAMES).filter(x=>x!=NON_MATCHING_SECTION_KEY).map(x=>x.toUpperCase() + ' - ' + STORAGE_SECTION_NAMES[x]).join('<br>');});
+		document.querySelectorAll('.fill_with_map_id').forEach(node=>{node.innerHTML = Object.keys(storage.map).map(x=>x.toUpperCase() + ' - ' + STORAGE_SECTION_NAMES[x]).join('<br>');});
+		document.querySelectorAll('.fill_with_tags_list').forEach(node=>{
+			node.innerHTML = tags_all.join('<br>');
+			storage.tags_local.forEach(tag => {
+				node.innerHTML += '<br>' + tag.name + ' (tylko dla ' + tag.range + ')';
+			})
+		});
 
 		// Key display select
 		let key_info_select      = document.getElementById('key_info_select');
@@ -2152,6 +2416,22 @@
 		});
 
 		return tokens.join(' ');
+	}
+	
+	function toggle_visiblity(element_id, parent='') {
+		let element = document.getElementById(element_id);
+		if (element) {
+			if (parent != '') {
+				let node_list = document.querySelectorAll('#'+parent+'>div');
+				node_list.forEach(node=>{
+					if (node != element)
+						node.style.display = 'none';
+				});
+			}
+			
+			element.style.display = element.style.display==='none' ? '' : 'none';
+		} else
+			console.log('not found');
 	}
 	</script>
 </body>
