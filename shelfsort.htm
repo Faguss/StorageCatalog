@@ -1762,7 +1762,7 @@
 		document.querySelectorAll('.fill_with_default_prefix').forEach(node=>{node.innerHTML = DEFAULT_PREFIX.toUpperCase();});
 		document.querySelectorAll('.fill_with_nonmatching').forEach(node=>{node.innerHTML = STORAGE_SECTION_NAMES[NON_MATCHING_SECTION_KEY];});
 		document.querySelectorAll('.fill_with_example_tag').forEach(node=>{node.innerHTML = tags_all[0];});
-		document.querySelectorAll('.fill_with_csv_column').forEach(node=>{node.innerHTML = CSV_IMPORT_DEFAULT_COLUMN;});
+		document.querySelectorAll('.fill_with_csv_column').forEach(node=>{node.innerHTML = CSV_IMPORT_DATA_FROM_COLUMN;});
 		document.querySelectorAll('.fill_with_numbered_until').forEach(node=>{node.innerHTML = P_SECTION_SHELVES_NUMBERED_UNTIL;});
 		document.querySelectorAll('.fill_with_var_name_raw_key').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_KEY';});	// make it not-searchable in text editor so that you hit actual var instead of description about it
 		document.querySelectorAll('.fill_with_var_name_raw_map').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_MAP';});
@@ -1801,7 +1801,7 @@
 		
 		let csv_column = document.getElementById('csv_import_column_name');
 		if (csv_column) {
-			csv_import_column_name.value = CSV_IMPORT_DEFAULT_COLUMN;
+			csv_import_column_name.value = CSV_IMPORT_DATA_FROM_COLUMN;
 			
 			let loaded_column = localStorage.getItem('csv_import_column_name');
 			if (loaded_column)
