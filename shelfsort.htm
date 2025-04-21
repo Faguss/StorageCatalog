@@ -1,392 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="utf-8" />
-	<meta http-equiv="x-ua-compatible" content="ie=edge" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Lokalizowanie akt</title>
-	<style>
-	table {
-  		border-collapse: collapse;
-		margin-top: 1em;
-	}
-	table caption {
-		font-size: x-small;
-  		text-align: right;
-  		margin-bottom: 4px;
-		display: none;
-	}
-	th {
-		text-align: center;
-		background-color: #afb3b1;
-		border: 1px solid #ddd;
-		padding: 8px;
-	}
-	tbody td {
-		border: 1px solid #ddd;
-		padding-left: 8px;
-		padding-right: 8px;
-		font-size: small;
-	}
-	tbody tr {
-		background-color: #ffffff;
-	}
-	tbody tr:nth-child(even) {
-		background-color: #e4e4e4;
-	}
-	tbody tr:hover {
-		background-color: #66e66d;
-	}
-	tfoot {
-		text-align: right;
-		font-style: italic; 
-		font-size: small;
-	}
-	#draganddrop_field {
-		position: fixed; 
-		top: 0; 
-		left: 0; 
-		z-index: 9999999999;
-		width: 100%;
-		height: 100%;
-		background-color: rgba(0,0,0,0.5);
-		transition: visibility 175ms, opacity 175ms;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-	.draganddrop_field_text {
-		font-family: sans-serif;
-		font-size: 400%;
-		text-transform: uppercase;
-		font-weight: bold;
-		color: rgb(182, 43, 43);
-	}
-	@keyframes orange-fade {
-		from {
-			background: #f96;
-		}
-		to {
-			background: #ffffff00;
-		}
-	}
-	.highlight_cell {
-		background-color: orange;
-	}
-	#last_result {
-		font-size: small;
-		margin-top: 0;
-		margin-bottom: 2px;
-	}
-	#last_result .highlight {
-		color: #8b00ff;
-	}
-	.key_info {
-		font-family: monospace;
-		line-height:1.3em;
-	}
-	#user_manual {
-		max-width: 65ch;
-		line-height: 1.2em;
-		background-color: #fff8e8;
-	}
-	.small_list {
-		font-family: monospace; 
-		margin-left:1em;
-	}
-	</style>
-</head>
-
-<body>
-	<div style="margin-bottom:1em;" id="controls">
-		<div style="visibility:hidden; opacity:0;" id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
-			<div class="draganddrop_field_text">Upuść tutaj pliki CSV/TXT</div>
-		</div>
-
-		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1>
-		<p>Wpisz numery w polu poniżej lub przeciągnij tutaj plik z listą. <button type="button" onclick="toggle_visiblity('options_toggle')">Opcje</button></p>
-		
-		<div style="margin-bottom:1em;display:none;background-color:rgba(255,243,228,0.4);" id="options_toggle">	
-			Import pliku: <input style="margin-bottom:0.1em;" type="file" multiple="multiple" onchange="parse_dropped_files(this)">
-			<br>
-			<label for="csv_import_column_name">Nazwa kolumny w pliku CSV:</label>
-			<input type="text" id="csv_import_column_name" name="csv_import_column_name" style="margin-bottom:0.5em;" size="8">
-			<br>
-			<button type="button" onclick="toggle_visiblity('user_manual')">Pokaż instrukcję</button>
-			<button type="button" onclick="toggle_visiblity('key_info_section');document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
-			<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Utwórz plik CSV</button>
-			<button type="button" onclick="print_html_table()">Wydrukuj</button>
-			<br>
-			<input type="checkbox" id="continuesearch" style="margin-top:0.5em;" name="continuesearch"><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
-			<br>
-			<input type="checkbox" id="matchbysuffix" style="margin-top:0.5em;" name="matchbysuffix"><label for="matchbysuffix">Znajdź po końcówce jeśli liczby nie ma w zakresie</label>
-
-			<div style="display:none" id="user_manual">
-				<hr>
-				<h2>Instrukcja obsługi</h2>
-				<p>Wybierz rozdział:</p>
-				
-				<button type="button" onclick="toggle_visiblity('chapter1','user_manual')">Wyszukiwanie</button>
-				<button type="button" onclick="toggle_visiblity('chapter2','user_manual')">Oznaczenia</button>
-				<button type="button" onclick="toggle_visiblity('chapter3','user_manual')">Opcje</button>
-				<button type="button" onclick="toggle_visiblity('chapter4','user_manual')">Eksport/Import</button>
-				<button type="button" onclick="toggle_visiblity('chapter5','user_manual')">Indeks</button>
-				<button type="button" onclick="toggle_visiblity('chapter6','user_manual')">Mapa</button>
-				
-				<div style="display:none" id="chapter1">
-					<h3>1. Wyszukiwanie i wyświetlanie wyników</h3>
-					<p>W polu tekstowym wpisz numer identyfikacyjny, który chcesz zlokalizować. 
-					Program automatycznie uzupełnia domyślny prefiks (<code class="fill_with_default_prefix"></code>) więc wystarczy napisać <code>250JF</code>, żeby otrzymać <code><code class="fill_with_default_prefix"></code>250JF</code>.
-					</p>
-					<p>Rezultat wyświetlany jest w tabeli poniżej. 
-					Nagłówek tabeli określa znalezioną sekcję, a w komórce znajduje się numer półki. 
-					W stopce tabeli znajduje się ilość numerów w każdej sekcji oraz licznik wszystkich wpisanych numerów.
-					</p>
-					<p>Wyniki są sortowanie według ułożenia półek, żeby skrócić czas transportu.
-					Niepasujące numery zostaną umieszczone w sekcji <code class="fill_with_nonmatching"></code>.
-					</p>
-					<p>Jeśli wpisane zostały identyczne numery, to lista duplikatów będzie wyświetlona pod tabelą.</p>
-					<p>Pod polem tekstowym, małą czcionką pokazany jest rezultat dla ostatniego wpisanego numeru.</p>
-					<p>Aktualnie zaznaczony numer w polu tekstowym będzie miał pomarańczowy kolor w tabeli. 
-					Kliknij na inne numery w polu tekstowym, aby móc szybko odnajdywać je w tabeli.
-					</p>
-					<p>Kliknij na komórkę w tabeli aby zakreślić dany numer.</p>
-					<p>Program zapisuje zawartość pola tekstowego i listę wykreślonych numerów w pamięci przeglądarki. 
-					Zamknięcie zakładki w przeglądarce nie spowoduje utraty danych.
-					</p>
-				</div>
-				
-				<div style="display:none" id="chapter2">
-					<h3>2. Oznaczenia</h3>
-					<p>W tej samej linijce, po numerze dopisz kolejny wyraz aby doprecyzować miejsce wyszukiwania. 
-					Na przykład: <code class="fill_with_default_prefix"></code><code>100AA</code> <code class="fill_with_example_tag"></code>.
-					Dostępne oznaczenia to:
-					</p>
-					<div class="small_list fill_with_tags_list"></div>
-					<p>Oznaczenia niezaczynające się od litery lub cyfry służą jako komentarz. 
-					Na przykład: <code class="fill_with_default_prefix"></code><code>100AA</code> <code class="fill_with_example_tag"></code> <code>.Adam</code>
-					</p>
-				</div>
-				
-				<div style="display:none" id="chapter3">
-					<h3>3. Dodatkowe opcje wyszukiwania</h3>
-					<h4>a) Pokaż wyniki w krzyżujących się zakresach</h4>
-					<p>Program wyszukując numer porównuje go z każdym zakresem w indeksie, dopóki nie znajdzie dopasowania. 
-					Jeśli na takie natrafi to kończy szukanie dla danego numeru i przechodzi do kolejnego.
-					</p>
-					<p>Zaznaczenie opcji <code>Pokaż wyniki w krzyżujących się zakresach</code> spowoduje, że program po znalezieniu półki będzie dalej przeszukiwał indeks, co może dać trafienia w więcej niż jednej półce.</p>
-					
-					<h4>b) Znajdź po końcówce jeśli liczby nie ma w zakresie</h4>
-					<p>W sekcji może znajdować się niepełny zakres. Na przykład:</p>
-					<div class="small_list">
-						Półka 1: 250AA - 500AA<br>
-						Półka 2: 501AA - 900AA<br>
-					</div>
-					<p>Program nie znajdzie numerów <code>100AA</code> albo <code>950AA</code> ponieważ powyższe zakresy ich nie obejmują. 
-					Zaznaczenie opcji <code>Znajdź po końcówce jeśli liczby nie ma w zakresie</code> spowoduje poluzowanie wymagań i program wybierzę bliższą półkę z tą samą końcówką. 
-					Na przykład dla <code>100AA</code> będzie to <code>Półka 1</code>, a dla <code>950AA</code> będzie to <code>Półka 2</code>.
-					</p>
-				</div>
-				
-				<div style="display:none" id="chapter4">
-					<h3>4. Eksport / import / druk listy</h3>
-					<p>Jeśli masz listę numerów w pliku TXT lub CSV to przeciągnij ten plik do okna przeglądarki, a program wczyta z niego numery. 
-					Alternatywnie wciśnij <code>Przeglądaj...</code> aby wybrać plik ręcznie.
-					</p>
-					<p>W przypadku pliku CSV ważna jest nazwa kolumny, z której program ma wczytać dane. 
-					Domyślnie jest to <code class="fill_with_csv_column"></code> ale można to zmienić wpisując nową wartość w polu <code>Nazwa kolumny w pliku CSV</code>.
-					</p>
-					<p>Listę numerów wpisanych w polu tekstowym można zapisać do nowego pliku klikając na przycisk <code>Utwórz plik CSV</code>.</p>
-					<p>Listę można również wydrukować klikając na przycisk <code>Wydrukuj</code>. 
-					Zbędne elementy na stronie znikną i pozostanie tylko tabela. 
-					Po chwili pojawi się okienko dialogowe drukowania. 
-					Po zakończeniu kliknij gdziekolwiek na stronie aby przywrócić opcje.
-					</p>
-				</div>
-				
-				<div style="display:none" id="chapter5">
-					<h3>5. Modyfikowanie indeksu zawartości półek</h3>
-					<p>Znajdź plik "lokalizator", wciśnij na niego prawym przyciskiem, wybierz "Otwórz za pomocą" i "Notatnik". 
-					Wciśnij CTRL+F, wpisz <code class="fill_with_var_name_raw_key"></code> i naciśnij ENTER a potem ESC, żeby zamknąć okienko wyszukiwania.
-					</p>
-					<p>Pod tym słowem znajduje się indeks zawartości półek, który można zmieniać. 
-					Po wprowadzeniu własnych zmian naciśnij CTRL+S i przeładuj stronę w przeglądarce.
-					</p>
-					<p>Każda linijka odpowiada jednej półce. 
-					Pierwszy wyraz składa się z jednoliterowego identyfikatora sekcji, a po nim następuje się numer półki. 
-					Na przykład <code>A20</code> to sekcja A i półka 20. Używane identyfikatory to:
-					</p>
-					<div class="small_list fill_with_section_id"></div>
-					<p>Po identyfikatorze wypisanych jest jeden lub więcej zakresów (oddziela się je przecinkami). Na przykład:</p>
-					<div class="small_list">
-						A20 JF<br>
-						A21 JG,JH
-					</div>
-					<p>Jeśli zakres składa się z samych liter (na przykład <code>JF</code>) to obejmie on wszystkie numery (001-999) z taką końcówką. 
-					W powyższym przykładzie półka 20 zawiera wszystkie numery z końcówką JF, natomiast półka 21 zawiera wszystkie numery z końcówką JG i JH.
-					</p>
-					<p>Aby podzielić zakres, dopisz na początku jedną lub dwie liczby oddzielone myślnikiem:</p>
-					<div class="small_list">
-						A20 001-499JF<br>
-						A21 500JF
-					</div>
-					<p>Domyślnym prefiksem jest <code class="fill_with_default_prefix"></code> więc nie trzeba go wszędzie dodawać. 
-					Ale jeśli numery mają inny początek, to wtedy należy dopisać go z odstępem. Na przykład:
-					</p>
-					<div class="small_list">
-						A22 WA 001-999JF
-					</div>
-					<p>Aby objąć wszystkie numery zaczynające się od danego prefiksu zamień zakres liczbowy na gwiazdkę:</p>
-					<div class="small_list">
-						A22 WA*
-					</div>
-					<p>Aby alfabetycznie objąć zakres prefiksów należy wpisać początek zakresu, dwie kropki, myślnik, koniec zakresu i dwie kropki.</p>
-					<div class="small_list">
-						A23 W..-ZBC..
-					</div>
-					<p>Powyższy przykład obejmie wszystkie numery zaczynające się od litery W (w tym takie numery jak WGI, X, XCD) do ZBC włącznie (ZBD i następne nie będą częścią zakresu). 
-					Numery z domyślnym prefiksem (<code class="fill_with_default_prefix"></code>) nie wliczają się do alfabetycznych zakresów.
-					</p>
-					<p>Do zakresu można dopisać słowo <code>oznaczenie:</code> z wartością po dwukropku, co spowoduje, że niezbędne będzie dodanie tego oznaczenia przy wyszukiwaniu.</p>
-					<div class="small_list">
-						A24 JF oznaczenie:2023<br>
-						A25 JF oznaczenie:2024
-					</div>
-					<p>Jeśli linijka zaczyna się od słowa <code>oznaczenie:</code> to wszystkie kolejne zakresy będą wymagały danego oznaczenia.</p>
-					<div class="small_list">
-						oznaczenie:2024<br>
-						A24 JF<br>
-						A25 JG
-					</div>
-					<p>Wpisz <code>oznaczenie:</code> bez wartości aby wyłączyć to dla następnych linijek.</p>
-					<div class="small_list">
-						oznaczenie:2024<br>
-						A24 JF<br>
-						A25 JG<br>
-						oznaczenie:<br>
-						B10 JF<br>
-						B11 JG
-					</div>
-					<p>W powyższym przykładzie wyszukanie numeru <code>JF</code> z oznaczeniem <code>2024</code> i bez, przyniesie różne wyniki</p>
-					<p>Istnieją także słowa specjalne: <code>skrócone</code> - obejmie numery składające się z 3 lub 4 znaków; <code>indywidualne</code> - obejmie numery zaczynające się od litery i cyfry.</p>
-					<div class="small_list">
-						A1 skrócone <br>
-						A2 indywidualne
-					</div>
-					<p>Po zakresie można dopisać słowo specjalne <code>sprawdzaj_na_końcu</code> aby zmniejszyć priorytet danego zakresu. Na przykład:</p>
-					<div class="small_list">
-						A1 GG* sprawdzaj_na_końcu<br>
-						A2 G..-H..
-					</div>
-					<p>W powyższym przykładzie wyszukanie <code>GG</code> wyświetli półkę 2. Aby znaleźć go w półce 1 trzeba będzie użyć opcji <code>Pokaż wyniki w krzyżujących się zakresach</code>.</p>
-					<p>Identyfikatory półek w piwnicy różnią się od pozostałych identyfikatorów. 
-					Na przykład <code>P2PB3</code> oznacza:</p>
-					<div class="small_list">
-						P - identyfikator piwnicy<br>
-						2 - numer szafy (licząc od lewej)<br>
-						P - prawa strona (L oznacza lewą stronę)<br>
-						B - numer kolumny (A jest najbliżej wyjścia, D jest najbliżej ściany)<br>
-						3 - numer rzędu (od 1 do 6)
-					</div>
-					<p>W tabeli wyników, półki piwnicy będą pokazane jako liczba lub w postaci szczegółowego opisu. 
-					Decyduje o tym wartość <code class="fill_with_var_name_pshelves"></code> (wciśnij CTRL+F aby ją odnaleźć) czyli do którego numeru półki są oznaczone liczbowo.
-					Aktualnie ta wartość wynosi <span class="fill_with_numbered_until"></span>.
-					Zwiększ ją, gdy kolejne półki otrzymają cyfrowe oznaczenie.
-					</p>
-					
-					<p>Gotowy indeks można sprawdzić w programie klikając na przycisk <code>Pokaż indeks</code>.</p>
-				</div>
-				
-				<div style="display:none" id="chapter6">
-					<h3>6. Modyfikowanie indeksu lokalizacji półek</h3>
-					<p>W tabeli wyników półki są sortowane według ich ułożenia w danej sekcji (po kolei od szczytowej do najgłębszej). 
-					Ponieważ ich pozycja może się zmieniać, to co jakiś czas trzeba będzie aktualizować ich pozycję w programie.
-					</p>
-					<p>Znajdź plik "lokalizator", wciśnij na niego prawym przyciskiem, wybierz "Otwórz za pomocą" i "Notatnik". 
-					Wciśnij CTRL+F, wpisz <code class="fill_with_var_name_raw_map"></code> i naciśnij ENTER a potem ESC, żeby zamknąć okienko wyszukiwania.
-					</p>
-					<p>Pod tym słowem znajduje się indeks pozycji półek, który można zmieniać. 
-					Po wprowadzeniu własnych zmian naciśnij CTRL+S i przeładuj stronę w przeglądarce.
-					</p>
-					<p>Indeks zaczyna się od jednoliterowego identyfikatora sekcji.
-					Używane identyfikatory to:
-					</p>
-					<div class="small_list fill_with_map_id"></div>
-					<p>W kolejnych linijkach znajdują się numery półek i ich pozycja. 
-					Wykres wygląda podobnie do tego, który jest wyświetlany w panelu obsługi.
-					</p>
-					<p>Przykładowy indeks:</p>
-					<div class="small_list">
-						A:<br>
-						1 100<br>
-						2 50
-					</div>
-					<p>W sekcji A, półka numer jeden znajduje się na pozycji 100, a półka numer dwa na pozycji 50.
-					Dla programu nie ma znaczenia, czy wartość znajduje się w kolumnie P lub T (jest to tak napisane wyłącznie dla wygody użytkownika).
-					</p>
-					<p>Gotową mapę można sprawdzić w programie, klikając na przycisk <code>Pokaż indeks</code> i przewijając w dół.</p>
-					<p>Piwnica nie ma indeksu miejsc półek ponieważ ich lokalizacja nigdy się nie zmienia. 
-					Program sortuje półki kolumnami (najpierw kolumna najbliżej ściany, a potem następne idąc w kierunku wyjścia).
-					</p>
-				</div>
-				<hr>
-			</div>
-
-			<div style="display:none;" id="key_info_section">
-				<div style="margin-top:1em">
-					<label for="key_info_select">Indeks sekcji:</label>
-					<select name="key_info_select" id="key_info_select"></select>
-
-					<label for="key_info_select_tag">Oznaczenie:</label>
-					<select name="key_info_select_tag" id="key_info_select_tag">
-						<option value="" selected="selected">brak</option>
-					</select>
-
-					<label for="key_info_select_sort">Sortuj wg:</label>
-					<select name="key_info_select_sort" id="key_info_select_sort">
-						<option value="default" selected="selected">kolejności wyszukiwania</option>
-						<option value="shelf">numeracji półek</option>
-						<option value="suffix">końcówki</option>
-					</select>
-				</div>
-				
-				<div class="key_info" id="key_info_display"></div>
-				
-				<div id="key_info_map">
-					<h3>Mapa szafy:</h3>
-					<label for="key_info_map_display_sort">Sortuj wg:</label>
-					<select name="key_info_map_display_sort" id="key_info_map_display_sort">
-						<option value="place">miejsca</option>
-						<option value="shelf">numeracji półek</option>
-					</select>
-					<input type="checkbox" id="key_info_map_toggle_content" name="key_info_map_toggle_content"><label for="key_info_map_toggle_content">Pokaż zawartość</label>
-					<div style="margin-top:1em;" id="key_info_map_display"></div>
-				</div>
-			</div>
-		</div>
-		
-		<textarea id="input" rows=10></textarea>
-		<p id="last_result"></p>
-	</div>
-	<div id="output"></div>
-
-	<script>
-	const DEFAULT_PREFIX = 'aa';
-	const INPUT_ID_MAX_LEN = 8;
-	const INPUT_ID_MAX_DIGITS = 5;
-	const INPUT_ID_PREFIX_MAX_LEN = 3;
-	const INPUT_ID_SUFFIX_MAX_LEN = 2;
-	const CSV_IMPORT_DATA_FROM_COLUMN = 'Nr';
-	const OUTPUT_TABLE_ID = 'output_table';
-	const NON_MATCHING_SECTION_KEY = 'non_matching';
-
-	const STORAGE_SECTION_NAMES = {
-		'a': 'Szafa #1',
-		'b': 'Szafa #2',
-		'c': 'Szafa #3',
-		'p': 'Piwnica',
-		[NON_MATCHING_SECTION_KEY]: 'Nieznalezione',
-	};
+<html lang="en"><head><script>
 
 	const RAW_STORAGE_KEY = `
 	A17 - AA 29915 - AA 37199 
@@ -973,6 +586,422 @@
 	28     71
 	29     87
 	`;
+
+	</script>
+	<meta charset="utf-8" />
+	<meta http-equiv="x-ua-compatible" content="ie=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Lokalizowanie akt</title>
+	<style>
+	body {
+		overflow-y: scroll;
+	}
+	table {
+  		border-collapse: collapse;
+		margin-top: 1em;
+	}
+	table caption {
+		font-size: x-small;
+  		text-align: right;
+  		margin-bottom: 4px;
+		display: none;
+	}
+	th {
+		text-align: center;
+		background-color: #afb3b1;
+		border: 1px solid #ddd;
+		padding: 8px;
+	}
+	tbody td {
+		border: 1px solid #ddd;
+		padding-left: 8px;
+		padding-right: 8px;
+		font-size: small;
+	}
+	tbody tr {
+		background-color: #ffffff;
+	}
+	tbody tr:nth-child(even) {
+		background-color: #e4e4e4;
+	}
+	tbody tr:hover {
+		background-color: #66e66d;
+	}
+	tfoot {
+		text-align: right;
+		font-style: italic; 
+		font-size: small;
+	}
+	#draganddrop_field {
+		position: fixed; 
+		top: 0; 
+		left: 0; 
+		z-index: 9999999999;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0,0,0,0.5);
+		transition: visibility 175ms, opacity 175ms;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.draganddrop_field_text {
+		font-family: sans-serif;
+		font-size: 400%;
+		text-transform: uppercase;
+		font-weight: bold;
+		color: rgb(182, 43, 43);
+	}
+	@keyframes orange-fade {
+		from {
+			background: #f96;
+		}
+		to {
+			background: #ffffff00;
+		}
+	}
+	.highlight_cell {
+		background-color: orange;
+	}
+	#last_result {
+		font-size: small;
+		margin-top: 0;
+		margin-bottom: 2px;
+	}
+	#last_result .highlight {
+		color: #8b00ff;
+	}
+	.key_info {
+		font-family: monospace;
+		line-height:1.3em;
+	}
+	#user_manual {
+		max-width: 65ch;
+		line-height: 1.2em;
+		background-color: #fff8e8;
+	}
+	.small_list {
+		font-family: monospace; 
+		margin-left:1em;
+	}
+	.signature {
+		position: absolute;
+		top: 40px;
+		right: 10px;
+		color: #0000007d;
+		font-family: Tahoma;
+		font-size: smaller;
+	}
+	.link-button {
+		background: none!important;
+		border: none;
+		padding: 0!important;
+		/*optional*/
+		font-family: arial, sans-serif;
+		/*input has OS specific font-family*/
+		color: #0969da;
+		text-decoration: underline;
+		cursor: pointer;
+		margin-top: 5px;
+	}
+	</style>
+</head>
+
+<body>
+	<div style="margin-bottom:1em;" id="controls">
+		<div style="visibility:hidden; opacity:0;" id="draganddrop_field" ondrop="drop_handler(event, this);" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
+			<div class="draganddrop_field_text">Upuść tutaj pliki CSV/TXT</div>
+		</div>
+
+		<h1 style="text-align:center; font-family:sans-serif; text-transform: uppercase;">Lokalizowanie akt</h1><span class="signature">Autor: Faguss (tel. XX-XXX-XXXX)</span>
+		<p>Wpisz numery w polu poniżej lub przeciągnij tutaj plik z listą. 
+			<button type="button" onclick="toggle_visiblity('options_toggle')">Opcje</button>
+			<button type="button" onclick="toggle_visiblity('user_manual')">Instrukcja obsługi</button>
+		</p>
+
+		<div style="display:none" id="user_manual">
+			<hr>
+			<h2>Instrukcja obsługi</h2>
+			
+			<button class="link-button" onclick="toggle_visiblity('chapter1','user_manual')">1. Wyszukiwanie i wyświetlanie wyników</button><br>
+			<button class="link-button" onclick="toggle_visiblity('chapter2','user_manual')">2. Oznaczenia numerów</button><br>
+			<button class="link-button" onclick="toggle_visiblity('chapter3','user_manual')">3. Dodatkowe opcje wyszukiwania</button><br>
+			<button class="link-button" onclick="toggle_visiblity('chapter4','user_manual')">4. Eksport / import / wydruk listy</button><br>
+			<button class="link-button" onclick="toggle_visiblity('chapter5','user_manual')">5. Modyfikowanie indeksu zawartości półek</button><br>
+			<button class="link-button" onclick="toggle_visiblity('chapter6','user_manual')">6. Modyfikowanie indeksu lokalizacji półek</button><br>
+			
+			<div id="chapter1">
+				<h3>1. Wyszukiwanie i wyświetlanie wyników</h3>
+				<p>W polu tekstowym wpisz numer akt, które chcesz zlokalizować. 
+				Program automatycznie uzupełnia numery domyślnym prefiksem (<code class="fill_with_default_prefix"></code>) więc wystarczy napisać <code>250JF</code>, żeby odnaleźć <code><code class="fill_with_default_prefix"></code>250JF</code>.
+				</p>
+				<p>Rezultat wyświetlany jest w tabeli poniżej. 
+				Nagłówek tabeli określa znalezioną sekcję, a w komórce znajduje się numer półki. 
+				Stopka pokazuje ilość numerów w każdej sekcji oraz całościową sumę.
+				</p>
+				<p>Wyniki są sortowanie według ułożenia półek, żeby skrócić czas transportu.
+				Niepasujące numery zostaną umieszczone w sekcji <code class="fill_with_nonmatching"></code>.
+				</p>
+				<p>Jeśli wpisane zostały identyczne numery, to lista duplikatów będzie wyświetlona pod tabelą.</p>
+				<p>Pod polem tekstowym, małą czcionką w fioletowym kolorze pokazany jest rezultat dla ostatniego wpisanego numeru.</p>
+				<p>Aktualnie zaznaczony numer w polu tekstowym będzie miał pomarańczowy kolor w tabeli. 
+				Kliknij na inne numery w polu tekstowym, aby móc szybko odnajdywać je w tabeli.
+				</p>
+				<p>Kliknij na komórkę w tabeli aby zakreślić dany numer.</p>
+				<p>Program zapisuje zawartość pola tekstowego i listę wykreślonych numerów w pamięci przeglądarki. 
+				Zamknięcie zakładki w przeglądarce nie spowoduje utraty danych.
+				</p>
+			</div>
+			
+			<div style="display:none" id="chapter2">
+				<h3>2. Oznaczenia numerów</h3>
+				<p>W tej samej linijce, po numerze dopisz kolejny wyraz aby doprecyzować miejsce wyszukiwania. 
+				Na przykład: <code class="fill_with_default_prefix"></code><code>100AA</code> <code class="fill_with_example_tag"></code>.
+				Dostępne oznaczenia to:
+				</p>
+				<div class="small_list fill_with_tags_list"></div>
+				<p>Oznaczenia niezaczynające się od litery lub cyfry służą jako komentarz. 
+				Na przykład: <code class="fill_with_default_prefix"></code><code>100AA</code> <code class="fill_with_example_tag"></code> <code>.Adam</code>
+				</p>
+				<p>Dodanie minusa spowoduje przekreślenie numeru w tabeli. Na przykład: <code class="fill_with_default_prefix"></code><code>100AA -</code>
+				</p>
+			</div>
+			
+			<div style="display:none" id="chapter3">
+				<h3>3. Dodatkowe opcje wyszukiwania</h3>
+				<h4>a) Pokaż wyniki w krzyżujących się zakresach</h4>
+				<p>Program wyszukując numer porównuje go z każdym zakresem w indeksie dopóki nie znajdzie dopasowania. 
+				Jeśli na takie natrafi, to kończy szukanie dla danego numeru i przechodzi do kolejnego.
+				</p>
+				<p>Zaznaczenie opcji <code>Pokaż wyniki w krzyżujących się zakresach</code> spowoduje, że program po znalezieniu półki będzie dalej przeszukiwał indeks, co może dać trafienia w więcej niż jednej półce.</p>
+				
+				<h4>b) Znajdź po końcówce jeśli liczby nie ma w zakresie</h4>
+				<p>W sekcji może znajdować się niepełny zakres. Na przykład:</p>
+				<div class="small_list">
+					Półka 1: 250AA - 500AA<br>
+					Półka 2: 501AA - 900AA<br>
+				</div>
+				<p>Program nie znajdzie numerów <code>100AA</code> albo <code>950AA</code> ponieważ powyższe zakresy ich nie obejmują. 
+				Zaznaczenie opcji <code>Znajdź po końcówce jeśli liczby nie ma w zakresie</code> spowoduje poluzowanie wymagań i program wybierzę bliższą półkę z tą samą końcówką. 
+				Na przykład dla <code>100AA</code> będzie to <code>Półka 1</code>, a dla <code>950AA</code> będzie to <code>Półka 2</code>.
+				</p>
+			</div>
+			
+			<div style="display:none" id="chapter4">
+				<h3>4. Eksport / import / wydruk listy</h3>
+				<p>Jeśli posiadasz listę numerów w pliku TXT lub CSV to przeciągnij ten plik do okna przeglądarki, a program sam wczyta z niego numery. 
+				Alternatywnie wciśnij <code>Przeglądaj...</code> aby wybrać plik ręcznie.
+				</p>
+				<p>W przypadku pliku CSV ważna jest nazwa kolumny, z której program ma wczytać dane. 
+				Domyślnie jest to <code class="fill_with_csv_column"></code> ale można to zmienić wpisując nową wartość w polu <code>Nazwa kolumny z numerami w importowanym pliku CSV</code>.
+				</p>
+				<p>Listę numerów wpisanych w polu tekstowym można zapisać do nowego pliku w zwykłej postaci tekstowej (klikając na przycisk <code>Zapisz numery do pliku TXT</code>) lub w postaci tabeli (klikając na przycisk <code>Zapisz tabelę do pliku CSV</code>) do odczytania w arkuszu kalkulacyjnym.</p>
+				<p>Listę można również wydrukować klikając na przycisk <code>Wydrukuj tabelę</code>. 
+				Zbędne elementy na stronie znikną i pozostanie sama tabela. 
+				Po chwili pojawi się okienko dialogowe drukowania. 
+				Po zatwierdzeniu kliknij gdziekolwiek na stronie aby przywrócić opcje.
+				</p>
+			</div>
+			
+			<div style="display:none" id="chapter5">
+				<h3>5. Modyfikowanie indeksu zawartości półek</h3>
+				<p>Znajdź plik "lokalizator", wciśnij na niego prawym przyciskiem myszy, wybierz "Otwórz za pomocą" i "Notatnik".
+				</p>
+				<p>Pod wyrażeniem <code class="fill_with_var_name_raw_key"></code> znajduje się indeks zawartości półek, który można edytować. 
+				Po wprowadzeniu własnych zmian naciśnij CTRL+S i przeładuj stronę w przeglądarce.
+				</p>
+				<p>Każda linijka odpowiada jednej półce. 
+				Pierwszy wyraz składa się z jednoliterowego identyfikatora sekcji, a po nim następuje numer półki. 
+				Na przykład <code>A20</code> to sekcja A i półka 20. Używane identyfikatory to:
+				</p>
+				<div class="small_list fill_with_section_id"></div>
+				<p>Po identyfikatorze sekcji wypisanych jest jeden lub więcej zakresów (oddziela się je przecinkami). Na przykład:</p>
+				<div class="small_list">
+					A20 JF<br>
+					A21 JG,JH
+				</div>
+				<p>Jeśli zakres składa się z samych liter (na przykład <code>JF</code>) to obejmie on wszystkie numery (001-999) z taką końcówką. 
+				W powyższym przykładzie półka 20 zawiera wszystkie numery z końcówką JF, natomiast półka 21 zawiera wszystkie numery z końcówką JG i JH.
+				</p>
+				<p>Aby podzielić zakres dopisz na początku jedną liczbę lub dwie liczby oddzielone myślnikiem:</p>
+				<div class="small_list">
+					A20 001-499JF<br>
+					A21 500JF
+				</div>
+				<p>Domyślnym prefiksem jest <code class="fill_with_default_prefix"></code> więc nie trzeba go wszędzie dodawać. 
+				Ale jeśli numery mają inny początek, to wtedy należy dopisać go z odstępem. Na przykład:
+				</p>
+				<div class="small_list">
+					A22 WA 001-999JF
+				</div>
+				<p>Aby objąć wszystkie numery zaczynające się od danego prefiksu zamień zakres liczbowy na gwiazdkę:</p>
+				<div class="small_list">
+					A22 WA*
+				</div>
+				<p>Aby alfabetycznie objąć zakres prefiksów należy wpisać początek zakresu, dwie kropki, myślnik, koniec zakresu i dwie kropki.</p>
+				<div class="small_list">
+					A23 W..-ZBC..
+				</div>
+				<p>Powyższy przykład obejmie wszystkie numery zaczynające się od litery W (w tym takie numery jak WGI, X, XCD) do ZBC włącznie (ZBD i następne nie będą częścią zakresu). 
+				Numery z domyślnym prefiksem (<code class="fill_with_default_prefix"></code>) nie wliczają się do alfabetycznych zakresów.
+				</p>
+				<p>Do zakresu można dopisać słowo <code>oznaczenie:</code> z wartością po dwukropku, co spowoduje, że niezbędne będzie dodanie tego oznaczenia przy wyszukiwaniu.</p>
+				<div class="small_list">
+					A24 JF oznaczenie:2023<br>
+					A25 JF oznaczenie:2024
+				</div>
+				<p>Jeśli linijka zaczyna się od słowa <code>oznaczenie:</code> to wszystkie kolejne zakresy będą wymagały danego oznaczenia.</p>
+				<div class="small_list">
+					oznaczenie:2024<br>
+					A24 JF<br>
+					A25 JG
+				</div>
+				<p>Wpisz <code>oznaczenie:</code> bez wartości aby kolejne linijki nie wymagały już oznaczenia.</p>
+				<div class="small_list">
+					oznaczenie:2024<br>
+					A24 JF<br>
+					A25 JG<br>
+					oznaczenie:<br>
+					B10 JF<br>
+					B11 JG
+				</div>
+				<p>W powyższym przykładzie wyszukanie numeru <code>JF</code> z oznaczeniem <code>2024</code> i bez, przyniesie różne wyniki</p>
+				<p>Istnieją także słowa specjalne: <code>skrócone</code> - obejmie numery składające się z 3 lub 4 znaków; <code>indywidualne</code> - obejmie numery zaczynające się od litery i cyfry.</p>
+				<div class="small_list">
+					A1 skrócone <br>
+					A2 indywidualne
+				</div>
+				<p>Po zakresie można dopisać słowo specjalne <code>sprawdzaj_na_końcu</code> aby zmniejszyć priorytet danego zakresu. Na przykład:</p>
+				<div class="small_list">
+					A1 GG* sprawdzaj_na_końcu<br>
+					A2 G..-H..
+				</div>
+				<p>W powyższym przykładzie wyszukanie <code>GG</code> wyświetli półkę 2. Aby znaleźć ten numer w półce 1 trzeba będzie użyć opcji <code>Pokaż wyniki w krzyżujących się zakresach</code>.</p>
+				<p>Identyfikatory półek w piwnicy różnią się od pozostałych identyfikatorów. 
+				Na przykład <code>P2PB3</code> oznacza:</p>
+				<div class="small_list">
+					P - identyfikator piwnicy<br>
+					2 - numer szafy (licząc od lewej)<br>
+					P - prawa strona (L oznacza lewą stronę)<br>
+					B - numer kolumny (A jest najbliżej wyjścia, D jest najbliżej ściany)<br>
+					3 - numer rzędu (od 1 do 6)
+				</div>
+				<p>W tabeli wyników, półki piwnicy będą pokazane jako liczba lub w postaci szczegółowego opisu. 
+				Decyduje o tym wartość <code class="fill_with_var_name_pshelves"></code> (wciśnij CTRL+F w Notatniku aby ją odnaleźć) czyli do którego numeru półki są oznaczone liczbowo.
+				Aktualnie ta wartość wynosi <span class="fill_with_numbered_until"></span>.
+				Zwiększ ją, gdy kolejne półki otrzymają cyfrowe oznaczenie.
+				</p>
+				
+				<p>Gotowy indeks można sprawdzić w programie klikając w opcjach na przycisk <code>Pokaż indeks</code>.</p>
+			</div>
+			
+			<div style="display:none" id="chapter6">
+				<h3>6. Modyfikowanie indeksu lokalizacji półek</h3>
+				<p>W tabeli wyników półki są sortowane według ich ułożenia w danej sekcji (po kolei od szczytowej do najgłębszej). 
+				Ponieważ ich pozycja może się zmieniać, to co jakiś czas trzeba korygować dane wpisane w niniejszym programie.
+				</p>
+				<p>Znajdź plik "lokalizator", wciśnij na niego prawym przyciskiem, wybierz "Otwórz za pomocą" i "Notatnik". 
+				Wciśnij CTRL+F, wpisz <code class="fill_with_var_name_raw_map"></code> i naciśnij ENTER a potem ESC, żeby zamknąć okienko wyszukiwania.
+				</p>
+				<p>Pod wyrażeniem <code class="fill_with_var_name_raw_map"></code> znajduje się indeks pozycji półek, który można zmieniać. 
+				Po wprowadzeniu własnych zmian naciśnij CTRL+S i przeładuj stronę w przeglądarce.
+				</p>
+				<p>Indeks zaczyna się od jednoliterowego identyfikatora sekcji.
+				Używane identyfikatory to:
+				</p>
+				<div class="small_list fill_with_map_id"></div>
+				<p>W kolejnych linijkach znajdują się numery półek oraz ich pozycja. 
+				Wykres wygląda podobnie do tego, który jest wyświetlany w panelu obsługi.
+				</p>
+				<p>Przykładowy indeks:</p>
+				<div class="small_list"><pre>
+	A:
+	punkt_odbioru:80
+	   P   T
+	1      100
+	2  50
+				</pre></div>
+				<p>W sekcji A półka numer jeden znajduje się na pozycji 100, a półka numer dwa na pozycji 50.
+				Dla programu nie ma znaczenia, czy wartość jest w kolumnie P lub T (jest to tak napisane wyłącznie dla wygody użytkownika).
+				</p>
+				<p>Gotową mapę można sprawdzić w programie, klikając w opcjach na przycisk <code>Pokaż indeks</code> i przewijając w dół.</p>
+				<p>Piwnica nie ma indeksu miejsc półek ponieważ ich lokalizacja nigdy się nie zmienia. 
+				Program sortuje półki kolumnami (najpierw kolumna najbliżej ściany, a potem następne idąc w kierunku wyjścia).
+				</p>
+			</div>
+			<hr>
+		</div>
+		
+		<div style="margin-bottom:1em;display:none;background-color:rgba(255,243,228,0.4);" id="options_toggle">	
+			Import pliku TXT/CSV z numerami: <input style="margin-bottom:0.1em;" type="file" multiple="multiple" onchange="parse_dropped_files(this)">
+			<br>
+			<label for="csv_import_column_name">Nazwa kolumny z numerami w importowanym pliku CSV:</label>
+			<input type="text" id="csv_import_column_name" name="csv_import_column_name" style="margin-bottom:0.5em;" size="8">
+			<br>
+			<button type="button" onclick="toggle_visiblity('key_info_section');document.getElementById('key_info_select').dispatchEvent(new Event('change'))">Pokaż indeks</button>
+			<button type="button" onclick="generate_txt(document.getElementById('input').value)">Zapisz numery do pliku TXT</button>
+			<button type="button" onclick="generate_csv(sort_numbers_to_shelves(document.getElementById('input').value, storage, document.getElementById('continuesearch').checked))">Zapisz tabelę do pliku CSV</button>
+			<button type="button" onclick="print_html_table()">Wydrukuj tabelę</button>
+			<br>
+			<input type="checkbox" id="continuesearch" style="margin-top:0.5em;" name="continuesearch"><label for="continuesearch">Pokaż wyniki w krzyżujących się zakresach</label>
+			<br>
+			<input type="checkbox" id="matchbysuffix" style="margin-top:0.5em;" name="matchbysuffix"><label for="matchbysuffix">Znajdź po końcówce jeśli liczby nie ma w zakresie</label>
+
+			<div style="display:none;" id="key_info_section">
+				<div style="margin-top:1em">
+					<label for="key_info_select">Indeks sekcji:</label>
+					<select name="key_info_select" id="key_info_select"></select>
+
+					<label for="key_info_select_tag">Oznaczenie:</label>
+					<select name="key_info_select_tag" id="key_info_select_tag">
+						<option value="" selected="selected">brak</option>
+					</select>
+
+					<label for="key_info_select_sort">Sortuj wg:</label>
+					<select name="key_info_select_sort" id="key_info_select_sort">
+						<option value="default" selected="selected">kolejności wyszukiwania</option>
+						<option value="shelf">numeracji półek</option>
+						<option value="suffix">końcówki</option>
+					</select>
+				</div>
+				
+				<div class="key_info" id="key_info_display"></div>
+				
+				<div id="key_info_map">
+					<h3>Mapa szafy:</h3>
+					<label for="key_info_map_display_sort">Sortuj wg:</label>
+					<select name="key_info_map_display_sort" id="key_info_map_display_sort">
+						<option value="place">miejsca</option>
+						<option value="shelf">numeracji półek</option>
+					</select>
+					<input type="checkbox" id="key_info_map_toggle_content" name="key_info_map_toggle_content"><label for="key_info_map_toggle_content">Pokaż zawartość</label>
+					<div style="margin-top:1em;" id="key_info_map_display"></div>
+				</div>
+			</div>
+		</div>
+		
+		<textarea id="input" rows=10></textarea>
+		<p id="last_result"></p>
+	</div>
+	<div id="output"></div>
+
+	<script>
+	const DEFAULT_PREFIX = 'aa';
+	const INPUT_ID_MAX_LEN = 8;
+	const INPUT_ID_MAX_DIGITS = 5;
+	const INPUT_ID_PREFIX_MAX_LEN = 3;
+	const INPUT_ID_SUFFIX_MAX_LEN = 2;
+	const CSV_IMPORT_DATA_FROM_COLUMN = 'Nr';
+	const OUTPUT_TABLE_ID = 'output_table';
+	const NON_MATCHING_SECTION_KEY = 'non_matching';
+
+	const STORAGE_SECTION_NAMES = {
+		'a': 'Szafa #1',
+		'b': 'Szafa #2',
+		'c': 'Szafa #3',
+		'p': 'Piwnica',
+		[NON_MATCHING_SECTION_KEY]: 'Nieznalezione',
+	};
 
 	const P_SECTION_SHELVES_NUMBERED_UNTIL = 360;
 	const P_SECTION_SHELF_REGEX = /(?<id>[0-9]+)(?<side>[a-z])(?<column>[a-z])(?<row>[0-9])/;
@@ -1764,7 +1793,7 @@
 		document.querySelectorAll('.fill_with_example_tag').forEach(node=>{node.innerHTML = tags_all[0];});
 		document.querySelectorAll('.fill_with_csv_column').forEach(node=>{node.innerHTML = CSV_IMPORT_DATA_FROM_COLUMN;});
 		document.querySelectorAll('.fill_with_numbered_until').forEach(node=>{node.innerHTML = P_SECTION_SHELVES_NUMBERED_UNTIL;});
-		document.querySelectorAll('.fill_with_var_name_raw_key').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_KEY';});	// make it not-searchable in text editor so that you hit actual var instead of description about it
+		document.querySelectorAll('.fill_with_var_name_raw_key').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_KEY';});	// make it not-searchable in a text editor so that you hit actual var instead of description about it
 		document.querySelectorAll('.fill_with_var_name_raw_map').forEach(node=>{node.innerHTML = 'RAW'+'_STORAGE_MAP';});
 		document.querySelectorAll('.fill_with_var_name_pshelves').forEach(node=>{node.innerHTML = 'P_SECTION'+'_SHELVES_NUMBERED_UNTIL';});
 		document.querySelectorAll('.fill_with_section_id').forEach(node=>{node.innerHTML = Object.keys(STORAGE_SECTION_NAMES).filter(x=>x!=NON_MATCHING_SECTION_KEY).map(x=>x.toUpperCase() + ' - ' + STORAGE_SECTION_NAMES[x]).join('<br>');});
@@ -2231,26 +2260,28 @@
 						shelf = shelf_num <= P_SECTION_SHELVES_NUMBERED_UNTIL ? shelf_num.toString().padStart(3,'0') : P_storage_format_relative_shelf_location(shelf);
 					}
 					
-					let shelf_pad = is_numeric(shelf) ? shelf.padStart(2,'0') : shelf;
+					let shelf_pad    = is_numeric(shelf) ? shelf.padStart(2,'0') : shelf;
+					let shelf_prefix = shelf ? (shelf_pad+': ') : '';
+					
 					let id        = sorted_numbers.sections[section][row].id ? sorted_numbers.sections[section][row].id : sorted_numbers.sections[section][row]; //match is an object, notmatching is a string
 					let tags      = sorted_numbers.sections[section][row].tags ? sorted_numbers.sections[section][row].tags.join(' ') : '';
 					let comments  = sorted_numbers.sections[section][row].comments ? sorted_numbers.sections[section][row].comments.join(' ') : '';
 
 					let text_without_comment = 
-						(shelf ? (shelf_pad+': ') : '') +
+						shelf_prefix +
 						id +
 						(tags.length>0 ? (' '+tags) : '');
 
 					let style = '';
 
-					if (strike_list.includes(text_without_comment)) {
-						style = ' style="text-decoration:line-through;" ';
+					if (strike_list.includes(text_without_comment) || sorted_numbers.sections[section][row].comments.includes('-')) {
+						style = ' style="text-decoration:line-through;color:#00000080" ';
 						new_strike_list.push(text_without_comment);
 					}
 
 					html_row += 
 						'<td ' + style + 'onclick="toggle_strike(this)">' + 
-						(shelf ? shelf_pad+': ' : '') +
+						shelf_prefix +
 						id +
 						(tags.length>0 ? (' <i>'+tags+'</i>') : '') +
 						(comments.length>0 ? (' <span style="font-size:x-small">'+comments+'</span>') : '') +
@@ -2301,7 +2332,7 @@
 
 	function generate_csv(sorted_numbers) {
 		if (sorted_numbers.total_count == 0) {
-			alert('Nie ma nic do eksportowania');
+			alert('Nie ma nic do zapisania');
 			return;
 		}
 		
@@ -2328,11 +2359,18 @@
 			sections_with_items.forEach((section, index) => {
 				csv += (index>0?',':'');
 				
-				if (sorted_numbers.sections[section] && sorted_numbers.sections[section][row]) {
-					csv += 
+				if (sorted_numbers.sections[section] && sorted_numbers.sections[section][row]) {					
+					let number_without_comment = 
+						(sorted_numbers.sections[section][row].shelf ? sorted_numbers.sections[section][row].shelf+': ' : '') +
 						sorted_numbers.sections[section][row].id +
-						(sorted_numbers.sections[section][row].tags.length>0 ? (' '+sorted_numbers.sections[section][row].tags.join(' ')) : '') +
-						(sorted_numbers.sections[section][row].comments.length>0 ? (' '+sorted_numbers.sections[section][row].comments.join(' ')) : '');
+						(sorted_numbers.sections[section][row].tags.length>0 ? (' '+sorted_numbers.sections[section][row].tags.join(' ')) : '');
+						
+					let add_dash = !sorted_numbers.sections[section][row].comments.includes('-') && strike_list.includes(number_without_comment);
+						
+					csv += 
+						number_without_comment + 
+						(sorted_numbers.sections[section][row].comments.length>0 ? (' '+sorted_numbers.sections[section][row].comments.join(' ')) : '') +
+						(add_dash ? ' -' : '');
 				}
 			});
 		}
@@ -2341,6 +2379,45 @@
 		let dl_link = document.createElement('a');
 		dl_link.href = URL.createObjectURL(blob);
 		dl_link.download = generate_file_name() + '.csv';
+		dl_link.click();
+	}
+	
+	function generate_txt(input_text) {
+		if (input_text.length == 0) {
+			alert('Nie ma nic do zapisania');
+			return;
+		}
+		
+		let new_text = '';
+		let to_add_dash = [];
+		
+		const rows = document.querySelector('#'+OUTPUT_TABLE_ID+'>tbody')?.rows;
+		if (rows) {
+			Array.from(rows).forEach(row => {
+				const cells = Array.from(row.cells);
+					cells.forEach(cell => {
+						let colon = cell.textContent.indexOf(':');
+						let current_id = get_id_without_comment(cell.textContent, true);
+
+						if (strike_list.includes(current_id)) {
+							to_add_dash.push(get_id_without_comment(colon ? cell.textContent.slice(colon+1) : cell.textContent));
+						}
+				});
+			});
+		}	
+		
+		input_text.split(/\r?\n/).forEach(line => {		
+			if (to_add_dash.includes(get_id_without_comment(line))) {
+				line += ' -';
+			}
+			
+			new_text += line + '\n';
+		});
+
+		let blob = new Blob([new_text], {type: 'text/txt;charset=utf-8;'});
+		let dl_link = document.createElement('a');
+		dl_link.href = URL.createObjectURL(blob);
+		dl_link.download = generate_file_name() + '.txt';
 		dl_link.click();
 	}
 
@@ -2398,24 +2475,33 @@
 		if (strike_list.includes(word_without_comment)) {
 			strike_list = strike_list.filter(item => item !== word_without_comment);
 			dom_item.style.setProperty('text-decoration', '');
+			dom_item.style.setProperty('color', '');
 		} else {
 			strike_list.push(word_without_comment);
 			dom_item.style.setProperty('text-decoration', 'line-through');
+			dom_item.style.setProperty('color', '#00000080');
 		}
 
 		localStorage.setItem('strike_list', JSON.stringify(strike_list));
 	}
 
-	function get_id_without_comment(text) {
+	function get_id_without_comment(text, fail_if_dash=false) {
 		let tokens = [];
+		let fail = false;
 
 		text.trim().split(/\s+/).forEach((word,index)=> {
 			if (index==0 || (index>0 && /^[a-zA-Z0-9]/.test(word))) {
 				tokens.push(word);
-			}
+			} else
+				if (fail_if_dash && word=='-') {
+					fail = true;
+				}
 		});
 
-		return tokens.join(' ');
+		if (fail)
+			return '';
+		else
+			return tokens.join(' ');
 	}
 	
 	function toggle_visiblity(element_id, parent='') {
